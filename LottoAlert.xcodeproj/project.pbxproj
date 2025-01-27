@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F937AC822D3DDE5D00892CC7 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = F937AC812D3DDE5D00892CC7 /* SnapKit */; };
+		F9BFB5842D3E281C00BF6564 /* NMapsMap in Frameworks */ = {isa = PBXBuildFile; productRef = F9BFB5832D3E281C00BF6564 /* NMapsMap */; };
+		F9BFB5872D3E28BA00BF6564 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = F9BFB5862D3E28BA00BF6564 /* SnapKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,11 +26,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F937AC622D3DDC8900892CC7 /* TabBar */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TabBar;
-			sourceTree = "<group>";
-		};
 		F9B275A62D3ACEAC005C2F76 /* LottoAlert */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -53,9 +49,24 @@
 			path = RandomNumber;
 			sourceTree = "<group>";
 		};
-		F9B275C32D3ACF30005C2F76 /* QRScanner */ = {
+		F9BFB5942D3FB6DF00BF6564 /* Utilities */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = QRScanner;
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		F9BFB5952D3FB70A00BF6564 /* Managers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		F9BFB5962D3FB72500BF6564 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		F9BFB5972D3FB73800BF6564 /* ViewControllers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewControllers;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -65,7 +76,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F937AC822D3DDE5D00892CC7 /* SnapKit in Frameworks */,
+				F9BFB5842D3E281C00BF6564 /* NMapsMap in Frameworks */,
+				F9BFB5872D3E28BA00BF6564 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,8 +87,10 @@
 		F9B2759B2D3ACEAC005C2F76 = {
 			isa = PBXGroup;
 			children = (
-				F937AC622D3DDC8900892CC7 /* TabBar */,
-				F9B275C32D3ACF30005C2F76 /* QRScanner */,
+				F9BFB5972D3FB73800BF6564 /* ViewControllers */,
+				F9BFB5962D3FB72500BF6564 /* Models */,
+				F9BFB5952D3FB70A00BF6564 /* Managers */,
+				F9BFB5942D3FB6DF00BF6564 /* Utilities */,
 				F9B275C22D3ACEF8005C2F76 /* RandomNumber */,
 				F9B275C12D3ACEE5005C2F76 /* Alert */,
 				F9B275BF2D3ACEC7005C2F76 /* Map */,
@@ -109,17 +123,16 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F937AC622D3DDC8900892CC7 /* TabBar */,
 				F9B275A62D3ACEAC005C2F76 /* LottoAlert */,
 				F9B275BF2D3ACEC7005C2F76 /* Map */,
 				F9B275C12D3ACEE5005C2F76 /* Alert */,
 				F9B275C22D3ACEF8005C2F76 /* RandomNumber */,
-				F9B275C32D3ACF30005C2F76 /* QRScanner */,
+				F9BFB5942D3FB6DF00BF6564 /* Utilities */,
+				F9BFB5952D3FB70A00BF6564 /* Managers */,
+				F9BFB5962D3FB72500BF6564 /* Models */,
+				F9BFB5972D3FB73800BF6564 /* ViewControllers */,
 			);
 			name = LottoAlert;
-			packageProductDependencies = (
-				F937AC812D3DDE5D00892CC7 /* SnapKit */,
-			);
 			productName = LottoAlert;
 			productReference = F9B275A42D3ACEAC005C2F76 /* LottoAlert.app */;
 			productType = "com.apple.product-type.application";
@@ -149,7 +162,8 @@
 			mainGroup = F9B2759B2D3ACEAC005C2F76;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F937AC802D3DDE5D00892CC7 /* XCRemoteSwiftPackageReference "SnapKit" */,
+				F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */,
+				F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F9B275A52D3ACEAC005C2F76 /* Products */;
@@ -196,6 +210,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -223,6 +238,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -379,7 +395,15 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		F937AC802D3DDE5D00892CC7 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+		F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/navermaps/SPM-NMapsMap";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.20.0;
+			};
+		};
+		F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit";
 			requirement = {
@@ -390,9 +414,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F937AC812D3DDE5D00892CC7 /* SnapKit */ = {
+		F9BFB5832D3E281C00BF6564 /* NMapsMap */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = F937AC802D3DDE5D00892CC7 /* XCRemoteSwiftPackageReference "SnapKit" */;
+			package = F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */;
+			productName = NMapsMap;
+		};
+		F9BFB5862D3E28BA00BF6564 /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */;
 			productName = SnapKit;
 		};
 /* End XCSwiftPackageProductDependency section */
