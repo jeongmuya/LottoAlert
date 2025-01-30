@@ -61,6 +61,18 @@ class MapViewController: UIViewController {
         return button
     }()
     
+    private let notificationButton: UIButton = {
+        let button = UIButton()
+        button.setImage(UIImage(systemName: "bell"), for: .normal)
+        button.backgroundColor = .white
+        button.layer.cornerRadius = 25
+        button.tintColor = .systemBlue
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowOpacity = 0.2
+        return button
+    }()
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -102,6 +114,13 @@ class MapViewController: UIViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.width.height.equalTo(50)
         }
+        
+        view.addSubview(notificationButton)
+        notificationButton.snp.makeConstraints { make in
+            make.top.equalTo(currentLocationButton.snp.bottom).offset(10)
+            make.trailing.equalToSuperview().offset(-20)
+            make.width.height.equalTo(50)
+        }
     }
     
     private func setupLocationManager() {
@@ -112,6 +131,7 @@ class MapViewController: UIViewController {
     
     private func setupActions() {
         currentLocationButton.addTarget(self, action: #selector(currentLocationButtonTapped), for: .touchUpInside)
+        notificationButton.addTarget(self, action: #selector(notificationButtonTapped), for: .touchUpInside)
         searchTextField.delegate = self
     }
     
@@ -247,6 +267,10 @@ class MapViewController: UIViewController {
         @unknown default:
             break
         }
+    }
+    
+    @objc private func notificationButtonTapped() {
+        print("알림 버튼이 탭되었습니다")
     }
     
     // 위치 이동 메서드 추가
