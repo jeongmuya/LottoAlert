@@ -27,7 +27,10 @@ class MapViewController: UIViewController {
         textField.placeholder = "지역 이름으로 검색"
         textField.backgroundColor = .white
         textField.layer.cornerRadius = 8
-        let searchImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 40, height: 20))
+        textField.font = .systemFont(ofSize: 16)
+        textField.textColor = .black
+        
+        let searchImageView = UIImageView(frame: CGRect(x: 8, y: 0, width: 20, height: 20))
         searchImageView.image = UIImage(systemName: "magnifyingglass")
         searchImageView.tintColor = .gray
         searchImageView.contentMode = .center
@@ -35,9 +38,14 @@ class MapViewController: UIViewController {
         leftPaddingView.addSubview(searchImageView)
         textField.leftView = leftPaddingView
         textField.leftViewMode = .always
+        
         textField.layer.shadowColor = UIColor.black.cgColor
         textField.layer.shadowOffset = CGSize(width: 0, height: 2)
-        textField.layer.shadowOpacity = 0.2
+        textField.layer.shadowOpacity = 0.3
+        textField.layer.shadowRadius = 4
+        
+        textField.layoutMargins = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+        
         return textField
     }()
     
