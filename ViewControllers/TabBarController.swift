@@ -10,25 +10,44 @@ class TabBarController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // LottoMapViewController를 첫 번째 탭으로 설정
-        let lottoMapVC = LottoMapViewController()
-        lottoMapVC.tabBarItem = UITabBarItem(
+        setupViewControllers()
+        setupTabBar()
+    }
+    
+    private func setupViewControllers() {
+        // 지도 화면
+        let mapVC = MapViewController()
+        let mapNav = UINavigationController(rootViewController: mapVC)
+        mapNav.tabBarItem = UITabBarItem(
             title: "지도",
             image: UIImage(systemName: "map"),
             selectedImage: UIImage(systemName: "map.fill")
         )
         
-        // 다른 뷰 컨트롤러들 설정...
+        // 번호 추천 화면
+        let recommendVC = NumberRecommendViewController()
+        let recommendNav = UINavigationController(rootViewController: recommendVC)
+        recommendNav.tabBarItem = UITabBarItem(
+            title: "번호 추천",
+            image: UIImage(systemName: "number.circle"),
+            selectedImage: UIImage(systemName: "number.circle.fill")
+        )
         
-        // 각 뷰 컨트롤러를 내비게이션 컨트롤러로 감싸기
-        let navigationController = UINavigationController(rootViewController: lottoMapVC)
+        // 히스토리 화면
+        let historyVC = LottoHistoryViewController()
+        let historyNav = UINavigationController(rootViewController: historyVC)
+        historyNav.tabBarItem = UITabBarItem(
+            title: "히스토리",
+            image: UIImage(systemName: "clock"),
+            selectedImage: UIImage(systemName: "clock.fill")
+        )
         
-        // 탭 바 컨트롤러에 뷰 컨트롤러 설정
-        viewControllers = [navigationController]
-        
-        // 탭바 커스터마이징
+        viewControllers = [mapNav, recommendNav, historyNav]
+    }
+    
+    private func setupTabBar() {
         tabBar.tintColor = .systemBlue
         tabBar.backgroundColor = .white
+        tabBar.isTranslucent = false
     }
 }

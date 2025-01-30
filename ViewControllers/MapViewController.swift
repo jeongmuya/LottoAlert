@@ -30,6 +30,9 @@ class MapViewController: UIViewController {
             updateNotificationButtonImage()
         }
     }
+    // 판매점별 마지막 알림 시간을 저장
+    private var lastNotificationTimes: [String: Date] = [:]
+    private let minimumNotificationInterval: TimeInterval = 300 // 5분으로 수정
     
     // MARK: - UI Components
     private let searchTextField: UITextField = {
@@ -92,6 +95,9 @@ class MapViewController: UIViewController {
         setupActions()
         setupNotifications()
         requestNotificationPermission()
+        
+        // 위치 권한 확인 및 위치 업데이트 시작
+        checkLocationAuthorization()
     }
     
     // MARK: - Setup Methods
@@ -181,12 +187,34 @@ class MapViewController: UIViewController {
         }
     }
     
+    private func checkLocationAuthorization() {
+        let status = locationManager.authorizationStatus
+        
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.startUpdatingLocation()
+            // 현재 위치 기반으로 주변 판매점 로드
+            if let location = LocationManager.shared.currentLocation {
+                moveToLocation(location)
+                loadLottoStores()
+            }
+        case .denied, .restricted:
+            showLocationPermissionAlert()
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        @unknown default:
+            break
+        }
+    }
+    
     // MARK: - Data Loading
     private func loadLottoStores() {
         guard let currentLocation = LocationManager.shared.currentLocation else {
             print("⚠️ 현재 위치를 찾을 수 없습니다")
             return
         }
+        
+        print("📍 주변 판매점 로드 시작: \(currentLocation.coordinate.latitude), \(currentLocation.coordinate.longitude)")
         
         LottoAPIManager.shared.fetchNearbyLottoStores(
             latitude: currentLocation.coordinate.latitude,
@@ -196,12 +224,16 @@ class MapViewController: UIViewController {
             switch result {
             case .success(let stores):
                 DispatchQueue.main.async {
-                    self?.stores = stores  // stores 배열 업데이트
-                    self?.markerManager.createMarkers(for: stores)  // 마커 생성
-                    self?.startMonitoringStores()  // 판매점 모니터링 시작
+                    print("✅ 판매점 로드 성공: \(stores.count)개")
+                    self?.stores = stores
+                    self?.markerManager.createMarkers(for: stores)
+                    self?.startMonitoringStores()
                 }
             case .failure(let error):
                 print("❌ 로또 판매점 조회 실패: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.showError(error)
+                }
             }
         }
     }
@@ -321,6 +353,8 @@ class MapViewController: UIViewController {
     @objc private func notificationButtonTapped() {
         let historyVC = LottoHistoryViewController()
         navigationController?.pushViewController(historyVC, animated: true)
+        notificationCount = 0  // 카운트 초기화
+        updateNotificationButtonImage()  // 버튼 이미지 업데이트
     }
     
     // 위치 이동 메서드 추가
@@ -366,13 +400,12 @@ class MapViewController: UIViewController {
     // MARK: - Monitoring Methods
     private func startMonitoringStores() {
         print("🔍 판매점 모니터링 시작...")
-        // 기존 모니터링 중인 지역 제거
         monitoredRegions.forEach { locationManager.stopMonitoring(for: $0) }
         monitoredRegions.removeAll()
         
         var monitoredCount = 0
         
-        // 현재 위치 확인
+        // 현재 위치 확인 추가
         guard let currentLocation = LocationManager.shared.currentLocation else {
             print("⚠️ 현재 위치를 찾을 수 없습니다")
             return
@@ -380,7 +413,6 @@ class MapViewController: UIViewController {
         
         print("📍 현재 위치: \(currentLocation.coordinate.latitude), \(currentLocation.coordinate.longitude)")
         
-        // 새로운 판매점 모니터링 시작
         for store in stores {
             guard let latitude = Double(store.latitude ?? ""),
                   let longitude = Double(store.longitude ?? "") else { 
@@ -391,11 +423,9 @@ class MapViewController: UIViewController {
             let storeLocation = CLLocation(latitude: latitude, longitude: longitude)
             let distance = currentLocation.distance(from: storeLocation)
             
-            // 모니터링 반경 내에 있는 경우
+            // 모니터링 반경 내에 있는 경우 알림 전송
             if distance <= monitoringRadius {
                 print("✅ 반경 내 매장 발견: \(store.name) (거리: \(Int(distance))m)")
-                
-                // 즉시 알림 전송
                 DispatchQueue.main.async { [weak self] in
                     self?.sendLottoNumberNotification(for: store)
                 }
@@ -419,16 +449,34 @@ class MapViewController: UIViewController {
     }
     
     // MARK: - Lotto Number Generation
-    private func generateLottoNumbers() -> [Int] {
+    private func generateLottoNumbers() -> (numbers: [Int], specialNumbers: [Int]) {
         var numbers = Set<Int>()
         while numbers.count < 6 {
             numbers.insert(Int.random(in: 1...45))
         }
-        return Array(numbers).sorted()
+        
+        let sortedNumbers = Array(numbers).sorted()
+        
+        // 70% 확률로 모든 번호를 특별 번호로 지정
+        let shouldGenerateSpecial = Double.random(in: 0...1) < 0.7
+        
+        if shouldGenerateSpecial {
+            // 모든 번호를 특별 번호로 지정
+            return (sortedNumbers, sortedNumbers)
+        }
+        
+        return (sortedNumbers, [])
     }
     
     // MARK: - Notification Methods
     private func sendLottoNumberNotification(for store: LottoStore) {
+        // 마지막 알림 시간 확인
+        if let lastTime = lastNotificationTimes[store.id],
+           Date().timeIntervalSince(lastTime) < minimumNotificationInterval {
+            print("⏱ \(store.name)의 다음 알림까지 대기 중")
+            return
+        }
+
         guard let currentLocation = LocationManager.shared.currentLocation,
               let latitude = Double(store.latitude ?? ""),
               let longitude = Double(store.longitude ?? "") else {
@@ -440,6 +488,15 @@ class MapViewController: UIViewController {
         let distance = currentLocation.distance(from: storeLocation)
         let distanceInMeters = Int(distance)
         
+        // 추천 번호 생성
+        let (recommendedNumbers, specialNumbers) = generateLottoNumbers()
+        
+        // 알림 메시지에 특별 번호 표시
+        let numbersText = recommendedNumbers.map { number -> String in
+            let formatted = String(format: "%02d", number)
+            return specialNumbers.contains(number) ? "✨\(formatted)✨" : formatted
+        }.joined(separator: ", ")
+        
         print("📍 알림 전송 시도: \(store.name) (거리: \(distanceInMeters)m)")
         
         let content = UNMutableNotificationContent()
@@ -447,7 +504,7 @@ class MapViewController: UIViewController {
         content.body = """
             \(store.name) 근처입니다! (약 \(distanceInMeters)m)
             주소: \(store.address)
-            추천 번호: \(generateLottoNumbers().map { String(format: "%02d", $0) }.joined(separator: ", "))
+            추천 번호: \(numbersText)
             """
         content.sound = UNNotificationSound.default
         
@@ -460,11 +517,41 @@ class MapViewController: UIViewController {
             trigger: trigger
         )
         
-        UNUserNotificationCenter.current().add(request) { error in
+        UNUserNotificationCenter.current().add(request) { [weak self] error in
             if let error = error {
                 print("❌ 알림 전송 실패: \(error.localizedDescription)")
             } else {
                 print("✅ 알림 전송 성공: \(store.name)")
+                DispatchQueue.main.async {
+                    // 알림 전송 성공 시 시간 기록 및 카운트 증가
+                    self?.lastNotificationTimes[store.id] = Date()
+                    self?.notificationCount += 1
+                    self?.updateNotificationButtonImage()
+                    
+                    // 추천 번호 저장
+                    let recommendation = LottoRecommendation(
+                        numbers: recommendedNumbers,
+                        storeName: store.name,
+                        specialNumbers: specialNumbers
+                    )
+                    
+                    // UserDefaults에 저장
+                    if let data = UserDefaults.standard.data(forKey: "lottoRecommendations"),
+                       var recommendations = try? JSONDecoder().decode([LottoRecommendation].self, from: data) {
+                        recommendations.insert(recommendation, at: 0)
+                        if recommendations.count > 50 {
+                            recommendations = Array(recommendations.prefix(50))
+                        }
+                        if let encoded = try? JSONEncoder().encode(recommendations) {
+                            UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
+                        }
+                    } else {
+                        // 첫 번째 추천인 경우
+                        if let encoded = try? JSONEncoder().encode([recommendation]) {
+                            UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
+                        }
+                    }
+                }
             }
         }
     }
@@ -479,8 +566,17 @@ class MapViewController: UIViewController {
     
     private func updateNotificationButtonImage() {
         DispatchQueue.main.async { [weak self] in
-            let imageName = self?.notificationCount ?? 0 > 0 ? "bell.badge" : "bell"
-            self?.notificationButton.setImage(UIImage(systemName: imageName), for: .normal)
+            // 알림이 있을 때는 채워진 벨 아이콘을 빨간색으로
+            if self?.notificationCount ?? 0 > 0 {
+                let image = UIImage(systemName: "bell.fill")
+                self?.notificationButton.setImage(image, for: .normal)
+                self?.notificationButton.tintColor = .systemRed
+            } else {
+                // 알림이 없을 때는 기본 벨 아이콘을 파란색으로
+                let image = UIImage(systemName: "bell")
+                self?.notificationButton.setImage(image, for: .normal)
+                self?.notificationButton.tintColor = .systemBlue
+            }
         }
     }
 }
@@ -505,13 +601,13 @@ extension MapViewController: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         
         print("📍 위치 업데이트: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        LocationManager.shared.updateCurrentLocation(location)
         
         // 위치 업데이트
         moveToLocation(location)
         
         // 주변 판매점 로드 및 모니터링 시작
         loadLottoStores()
-        startMonitoringStores()
         
         // 위치 업데이트 중지
         locationManager.stopUpdatingLocation()

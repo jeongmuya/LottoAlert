@@ -137,4 +137,9 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
             return distance <= 3000 // 3km 반경 내 매장만 필터링
         }
     }
+    
+    // 위치 업데이트 메서드 추가
+    func updateCurrentLocation(_ location: CLLocation) {
+        currentLocation = location
+    }
 }
