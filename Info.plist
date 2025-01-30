@@ -1,0 +1,9 @@
+<key>UIBackgroundModes</key>
+<array>
+    <string>location</string>
+    <string>remote-notification</string>
+</array>
+<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>로또 판매점 근처에서 추천 번호를 받기 위해 항상 위치 권한이 필요합니다.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>주변 로또 판매점을 찾기 위해 위치 권한이 필요합니다.</string> 
