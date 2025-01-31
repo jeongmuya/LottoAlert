@@ -14,7 +14,7 @@ import UserNotifications
 class MapViewController: UIViewController {
     
     // MARK: - Properties
-    let mapView = NMFMapView()
+    private let mapView = NMFMapView()
     private let locationManager = CLLocationManager()
     private let lottoAPIManager = LottoAPIManager.shared
     private var stores: [LottoStore] = []
@@ -43,13 +43,14 @@ class MapViewController: UIViewController {
         textField.font = .systemFont(ofSize: 16)
         textField.textColor = .black
         
-        let searchImageView = UIImageView(frame: CGRect(x: 8, y: 0, width: 20, height: 20))
-        searchImageView.image = UIImage(systemName: "magnifyingglass")
+        // 검색 아이콘 추가
+        let searchImageView = UIImageView(image: UIImage(systemName: "magnifyingglass"))
         searchImageView.tintColor = .gray
         searchImageView.contentMode = .center
-        let leftPaddingView = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 20))
-        leftPaddingView.addSubview(searchImageView)
-        textField.leftView = leftPaddingView
+        let leftView = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 20))
+        leftView.addSubview(searchImageView)
+        searchImageView.center = leftView.center
+        textField.leftView = leftView
         textField.leftViewMode = .always
         
         textField.layer.shadowColor = UIColor.black.cgColor
@@ -91,6 +92,7 @@ class MapViewController: UIViewController {
         super.viewDidLoad()
         setupMapView()
         setupUI()
+        setupMarkerManager()
         setupLocationManager()
         setupActions()
         setupNotifications()
@@ -98,6 +100,7 @@ class MapViewController: UIViewController {
         
         // 위치 권한 확인 및 위치 업데이트 시작
         checkLocationAuthorization()
+        loadLottoStores()
     }
     
     // MARK: - Setup Methods
@@ -112,8 +115,8 @@ class MapViewController: UIViewController {
         mapView.minZoomLevel = 10
         mapView.maxZoomLevel = 20
         
-        // 델리게이트 설정
-        mapView.addCameraDelegate(delegate: self)
+        // 델리게이트 설정 수정
+        mapView.addCameraDelegate(delegate: self)  // delegate: 파라미터 명시
         mapView.touchDelegate = self
     }
     
@@ -141,6 +144,10 @@ class MapViewController: UIViewController {
         }
     }
     
+    private func setupMarkerManager() {
+        // 마커 터치 핸들러 설정 제거
+    }
+    
     private func setupLocationManager() {
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
@@ -151,13 +158,25 @@ class MapViewController: UIViewController {
         // 위치 권한 요청
         locationManager.requestAlwaysAuthorization()
         
-        // 알림 권한도 함께 요청
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if granted {
-                print("✅ 알림 권한 허용됨")
-            } else {
-                print("❌ 알림 권한 거부됨: \(error?.localizedDescription ?? "unknown error")")
-            }
+        // 알림 권한 요청 - 클로저를 별도 함수로 분리
+        requestNotificationAuthorization()
+    }
+    
+    private func requestNotificationAuthorization() {
+        let notificationCenter = UNUserNotificationCenter.current()
+        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+        
+        notificationCenter.requestAuthorization(
+            options: options,
+            completionHandler: handleNotificationAuthorizationResponse
+        )
+    }
+    
+    private func handleNotificationAuthorizationResponse(granted: Bool, error: Error?) {
+        if granted {
+            print("✅ 알림 권한 허용됨")
+        } else {
+            print("❌ 알림 권한 거부됨: \(error?.localizedDescription ?? "unknown error")")
         }
     }
     
@@ -177,13 +196,19 @@ class MapViewController: UIViewController {
     }
     
     private func requestNotificationPermission() {
-        alertManager.requestNotificationPermission { granted in
+        // 클로저를 별도의 메서드로 분리
+        let completionHandler: (Bool) -> Void = { [weak self] granted in
+            guard let self = self else { return }
+            
             if !granted {
                 DispatchQueue.main.async {
                     self.alertManager.showPermissionAlert(on: self)
                 }
             }
         }
+        
+        // 명시적인 파라미터로 전달
+        alertManager.requestNotificationPermission(completionHandler: completionHandler)
     }
     
     private func checkLocationAuthorization() {
@@ -208,31 +233,18 @@ class MapViewController: UIViewController {
     
     // MARK: - Data Loading
     private func loadLottoStores() {
-        guard let currentLocation = LocationManager.shared.currentLocation else {
-            print("⚠️ 현재 위치를 찾을 수 없습니다")
-            return
-        }
-        
-        print("📍 주변 판매점 로드 시작: \(currentLocation.coordinate.latitude), \(currentLocation.coordinate.longitude)")
-        
-        LottoAPIManager.shared.fetchNearbyLottoStores(
-            latitude: currentLocation.coordinate.latitude,
-            longitude: currentLocation.coordinate.longitude,
-            radius: 1000
-        ) { [weak self] result in
+        lottoAPIManager.fetchNearbyLottoStores(
+            latitude: locationManager.location?.coordinate.latitude ?? 37.5666,
+            longitude: locationManager.location?.coordinate.longitude ?? 126.9784,
+            radius: 3000
+        ) { [weak self] (result: Result<[LottoStore], Error>) in  // 타입 명시
             switch result {
             case .success(let stores):
-                DispatchQueue.main.async {
-                    print("✅ 판매점 로드 성공: \(stores.count)개")
-                    self?.stores = stores
-                    self?.markerManager.createMarkers(for: stores)
-                    self?.startMonitoringStores()
-                }
+                self?.stores = stores
+                self?.markerManager.createMarkers(for: stores)
+                self?.startMonitoringStores()
             case .failure(let error):
-                print("❌ 로또 판매점 조회 실패: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    self?.showError(error)
-                }
+                print("Error loading stores: \(error)")
             }
         }
     }
@@ -246,7 +258,8 @@ class MapViewController: UIViewController {
             guard let latString = store.latitude,
                   let lngString = store.longitude,
                   let latitude = Double(latString),
-                  let longitude = Double(lngString) else {
+                  let longitude = Double(lngString),
+                  let storeId = store.id else {  // id도 안전하게 언래핑
                 return false
             }
             let position = NMGLatLng(lat: latitude, lng: longitude)
@@ -263,9 +276,9 @@ class MapViewController: UIViewController {
         
         // 새로운 마커 추가
         for store in visibleStores {
-            if visibleMarkers[store.id] == nil {
+            if let storeId = store.id, visibleMarkers[storeId] == nil {  // id 안전하게 언래핑
                 let marker = createMarker(for: store)
-                visibleMarkers[store.id] = marker
+                visibleMarkers[storeId] = marker
             }
         }
     }
@@ -273,55 +286,39 @@ class MapViewController: UIViewController {
     private func createMarker(for store: LottoStore) -> NMFMarker {
         let marker = NMFMarker()
         
-        // String을 Double로 변환
         guard let latString = store.latitude,
               let lngString = store.longitude,
               let latitude = Double(latString),
               let longitude = Double(lngString) else {
-            // 좌표가 없는 경우 기본 위치 설정 (예: 서울시청)
             marker.position = NMGLatLng(lat: 37.5666791, lng: 126.9782914)
             return marker
         }
         
         marker.position = NMGLatLng(lat: latitude, lng: longitude)
         marker.captionText = store.name
-        marker.mapView = mapView
         
-        // 마커 터치 이벤트
-        marker.touchHandler = { [weak self] _ in
-            self?.showStoreDetail(store)
-            return true
-        }
+        // 마커 색상을 초록색으로 변경
+        marker.iconTintColor = UIColor.systemGreen  // 또는 UIColor(red: 0, green: 0.8, blue: 0, alpha: 1)
+        
+        marker.mapView = mapView
         
         return marker
     }
     
     // MARK: - Navigation
     private func showStoreDetail(_ store: LottoStore) {
-        let detailVC = LottoMapViewController()
-        detailVC.configure(with: store)  // store 정보 전달
-        navigationController?.pushViewController(detailVC, animated: true)
+        // showStoreDetail 메서드 제거
     }
     
     // MARK: - Public Methods
     func displayStores(_ stores: [LottoStore]) {
-        print("📍 마커 생성 시작: \(stores.count)개의 판매점")
         self.stores = stores
-        markerManager.removeAllMarkers()
         markerManager.createMarkers(for: stores)
         startMonitoringStores()
     }
     
     func clearMarkers() {
         markerManager.removeAllMarkers()
-    }
-    
-    // 카메라 이동이 끝났을 때 주변 판매점 로드
-    func mapView(_ mapView: NMFMapView, cameraDidStopMoving reason: Int) {
-        let center = mapView.cameraPosition.target
-        if let lottoMapVC = parent as? LottoMapViewController {
-            lottoMapVC.loadNearbyStores(latitude: center.lat, longitude: center.lng)
-        }
     }
     
     // MARK: - Actions
@@ -413,24 +410,21 @@ class MapViewController: UIViewController {
         monitoredRegions.forEach { locationManager.stopMonitoring(for: $0) }
         monitoredRegions.removeAll()
         
-        var monitoredCount = 0
-        
-        // 현재 위치 확인 추가
         guard let currentLocation = LocationManager.shared.currentLocation else {
             print("⚠️ 현재 위치를 찾을 수 없습니다")
             return
         }
         
-        print("📍 현재 위치: \(currentLocation.coordinate.latitude), \(currentLocation.coordinate.longitude)")
-        
         for store in stores {
-            guard let latitude = Double(store.latitude ?? ""),
-                  let longitude = Double(store.longitude ?? "") else { 
+            guard let latitude = store.latitude,
+                  let longitude = store.longitude,
+                  let lat = Double(latitude),
+                  let lng = Double(longitude) else { 
                 print("⚠️ 판매점 좌표 오류: \(store.name)")
                 continue 
             }
             
-            let storeLocation = CLLocation(latitude: latitude, longitude: longitude)
+            let storeLocation = CLLocation(latitude: lat, longitude: lng)
             let distance = currentLocation.distance(from: storeLocation)
             
             // 모니터링 반경 내에 있는 경우 알림 전송
@@ -442,20 +436,19 @@ class MapViewController: UIViewController {
             }
             
             // 지역 모니터링 설정
-            let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
             let region = CLCircularRegion(center: coordinate,
                                         radius: monitoringRadius,
-                                        identifier: store.id)
+                                        identifier: store.id ?? "")
             
             region.notifyOnEntry = true
             region.notifyOnExit = false
             
             locationManager.startMonitoring(for: region)
             monitoredRegions.append(region)
-            monitoredCount += 1
         }
         
-        print("✅ 총 \(monitoredCount)개의 판매점 모니터링 시작")
+        print("✅ 총 \(monitoredRegions.count)개의 판매점 모니터링 시작")
     }
     
     // MARK: - Lotto Number Generation
@@ -481,7 +474,7 @@ class MapViewController: UIViewController {
     // MARK: - Notification Methods
     private func sendLottoNumberNotification(for store: LottoStore) {
         // 마지막 알림 시간 확인
-        if let lastTime = lastNotificationTimes[store.id],
+        if let lastTime = lastNotificationTimes[store.id ?? ""],
            Date().timeIntervalSince(lastTime) < minimumNotificationInterval {
             print("⏱ \(store.name)의 다음 알림까지 대기 중")
             return
@@ -527,42 +520,40 @@ class MapViewController: UIViewController {
             trigger: trigger
         )
         
-        UNUserNotificationCenter.current().add(request) { [weak self] error in
+        // completionHandler를 별도의 메서드로 분리
+        UNUserNotificationCenter.current().add(
+            request,
+            withCompletionHandler: makeNotificationCompletionHandler(for: store, numbers: recommendedNumbers, special: specialNumbers)
+        )
+    }
+    
+    private func makeNotificationCompletionHandler(
+        for store: LottoStore,
+        numbers: [Int],
+        special: [Int]
+    ) -> ((Error?) -> Void) {
+        return { [weak self] error in
             if let error = error {
                 print("❌ 알림 전송 실패: \(error.localizedDescription)")
             } else {
                 print("✅ 알림 전송 성공: \(store.name)")
-                DispatchQueue.main.async {
-                    // 알림 전송 성공 시 시간 기록 및 카운트 증가
-                    self?.lastNotificationTimes[store.id] = Date()
-                    self?.notificationCount += 1
-                    self?.updateNotificationButtonImage()
-                    
-                    // 추천 번호 저장
-                    let recommendation = LottoRecommendation(
-                        numbers: recommendedNumbers,
-                        storeName: store.name,
-                        specialNumbers: specialNumbers
-                    )
-                    
-                    // UserDefaults에 저장
-                    if let data = UserDefaults.standard.data(forKey: "lottoRecommendations"),
-                       var recommendations = try? JSONDecoder().decode([LottoRecommendation].self, from: data) {
-                        recommendations.insert(recommendation, at: 0)
-                        if recommendations.count > 50 {
-                            recommendations = Array(recommendations.prefix(50))
-                        }
-                        if let encoded = try? JSONEncoder().encode(recommendations) {
-                            UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
-                        }
-                    } else {
-                        // 첫 번째 추천인 경우
-                        if let encoded = try? JSONEncoder().encode([recommendation]) {
-                            UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
-                        }
-                    }
-                }
+                self?.handleSuccessfulNotification(store: store, numbers: numbers, special: special)
             }
+        }
+    }
+    
+    private func handleSuccessfulNotification(store: LottoStore, numbers: [Int], special: [Int]) {
+        DispatchQueue.main.async { [weak self] in
+            self?.lastNotificationTimes[store.id ?? ""] = Date()
+            self?.notificationCount += 1
+            self?.updateNotificationButtonImage()
+            
+            let recommendation = LottoRecommendation(
+                numbers: numbers,
+                storeName: store.name,
+                specialNumbers: special
+            )
+            self?.saveRecommendation(recommendation)
         }
     }
     
@@ -599,6 +590,40 @@ class MapViewController: UIViewController {
         )
         alert.addAction(UIAlertAction(title: "확인", style: .default))
         present(alert, animated: true)
+    }
+    
+    func loadNearbyStores(latitude: Double, longitude: Double) {
+        lottoAPIManager.fetchNearbyLottoStores(
+            latitude: latitude,
+            longitude: longitude,
+            radius: 3000
+        ) { [weak self] result in
+            switch result {
+            case .success(let stores):
+                self?.stores = stores
+                self?.markerManager.createMarkers(for: stores)
+                self?.startMonitoringStores()
+            case .failure(let error):
+                print("Error loading stores: \(error)")
+            }
+        }
+    }
+    
+    private func saveRecommendation(_ recommendation: LottoRecommendation) {
+        if let data = UserDefaults.standard.data(forKey: "lottoRecommendations"),
+           var recommendations = try? JSONDecoder().decode([LottoRecommendation].self, from: data) {
+            recommendations.insert(recommendation, at: 0)
+            if recommendations.count > 50 {
+                recommendations = Array(recommendations.prefix(50))
+            }
+            if let encoded = try? JSONEncoder().encode(recommendations) {
+                UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
+            }
+        } else {
+            if let encoded = try? JSONEncoder().encode([recommendation]) {
+                UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
+            }
+        }
     }
 }
 
@@ -640,7 +665,7 @@ extension MapViewController: CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        guard let store = stores.first(where: { $0.id == region.identifier }) else { return }
+        guard let store = stores.first(where: { String($0.number) == region.identifier }) else { return }
         print("🎯 판매점 반경 진입: \(store.name)")
         sendLottoNumberNotification(for: store)
     }
@@ -679,7 +704,7 @@ extension MapViewController: UITextFieldDelegate {
 // MARK: - NMFMapViewCameraDelegate
 extension MapViewController: NMFMapViewCameraDelegate {
     func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
-        // updateVisibleMarkers() 호출 제거
+        // 카메라 이동 시 필요한 로직 구현
     }
 }
 
@@ -687,5 +712,12 @@ extension MapViewController: NMFMapViewCameraDelegate {
 extension MapViewController: NMFMapViewTouchDelegate {
     func mapView(_ mapView: NMFMapView, didTapMap latlng: NMGLatLng) {
         searchTextField.resignFirstResponder()
+    }
+}
+
+// MARK: - MapViewControllerDelegate
+extension MapViewController: MapViewControllerDelegate {
+    func mapViewController(_ controller: LottoMapViewController, didMoveCameraTo position: NMGLatLng) {
+        loadNearbyStores(latitude: position.lat, longitude: position.lng)
     }
 }

@@ -11,8 +11,8 @@ import UserNotifications
 class AlertManager {
     static let shared = AlertManager()
     private let notificationCenter = UNUserNotificationCenter.current()
-    private var lastNotificationTime: Date?
-    private let minimumNotificationInterval: TimeInterval = 5 // 알림 간 최소 간격 (초)
+    private var lastNotificationTimes: [String: Date] = [:] // 판매점별 마지막 알림 시간
+    private let minimumNotificationInterval: TimeInterval = 3600 // 1시간
     private var notificationCount: Int = 0 {
         didSet {
             DispatchQueue.main.async {
@@ -25,100 +25,53 @@ class AlertManager {
         }
     }
     
-    private init() {}
-    
-    // MARK: - Permission
-    func requestNotificationPermission(completion: @escaping (Bool) -> Void) {
-        notificationCenter.getNotificationSettings { settings in
-            switch settings.authorizationStatus {
-            case .notDetermined:
-                self.notificationCenter.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-                    if granted {
-                        print("✅ 알림 권한이 허용되었습니다.")
-                        DispatchQueue.main.async {
-                            UIApplication.shared.registerForRemoteNotifications()
-                        }
-                    } else if let error = error {
-                        print("❌ 알림 권한 요청 실패: \(error.localizedDescription)")
-                    }
-                    completion(granted)
-                }
-            case .denied:
-                print("⚠️ 알림 권한이 거부되었습니다.")
-                completion(false)
-            case .authorized:
-                print("✅ 이미 알림 권한이 허용되어 있습니다.")
-                completion(true)
-            default:
-                completion(false)
+    private init() {
+        requestNotificationPermission { granted in
+            if granted {
+                print("✅ 초기 알림 권한 설정 완료")
+            } else {
+                print("⚠️ 초기 알림 권한 거부됨")
             }
         }
     }
     
+    // MARK: - Permission
+    func requestNotificationPermission(completionHandler: @escaping (Bool) -> Void) {
+        UNUserNotificationCenter.current().requestAuthorization(
+            options: [.alert, .sound, .badge]
+        ) { granted, _ in
+            completionHandler(granted)
+        }
+    }
+    
     // MARK: - Store Notifications
-    func sendStoreNotification(store: LottoStore, distance: Int, numbers: [Int]) {
-        // 마지막 알림과의 시간 간격 체크
-        if let lastTime = lastNotificationTime,
+    func sendLottoStoreNotification(for store: LottoStore) {
+        // 마지막 알림 시간 확인
+        if let lastTime = lastNotificationTimes[store.id ?? ""],
            Date().timeIntervalSince(lastTime) < minimumNotificationInterval {
-            print("⏱ 알림 간격이 너무 짧습니다. 건너뜁니다.")
+            print("⏱ 알림 간격이 너무 짧습니다: \(store.name)")
             return
         }
         
         let content = UNMutableNotificationContent()
-        content.title = "🎱 로또 번호 추천"
-        content.body = """
-            \(store.name) 근처입니다! (약 \(distance)m)
-            주소: \(store.address)
-            추천 번호: \(numbers.map { String(format: "%02d", $0) }.joined(separator: ", "))
-            """
-        content.sound = UNNotificationSound.default
-        content.badge = NSNumber(value: notificationCount + 1)
+        content.title = "근처에 로또 판매점이 있습니다!"
+        content.body = "\(store.name)이(가) 근처에 있습니다. 행운의 번호를 구매해보세요!"
+        content.sound = .default
         
+        // 즉시 알림 전송
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,
             trigger: nil
         )
         
-        notificationCenter.add(request) { [weak self] error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ 알림 전송 실패: \(error.localizedDescription)")
-                } else {
-                    print("✅ 알림 전송 성공: \(store.name) (\(distance)m)")
-                    self?.notificationCount += 1
-                    self?.lastNotificationTime = Date()
-                    
-                    // 추천 번호 저장 로직 수정
-                    let recommendation = LottoRecommendation(
-                        numbers: numbers,
-                        storeName: store.name
-                    )
-                    
-                    // UserDefaults에 직접 저장
-                    if let encoded = try? JSONEncoder().encode([recommendation]) {
-                        var existingRecommendations: [LottoRecommendation] = []
-                        
-                        // 기존 데이터 로드
-                        if let data = UserDefaults.standard.data(forKey: "lottoRecommendations"),
-                           let decoded = try? JSONDecoder().decode([LottoRecommendation].self, from: data) {
-                            existingRecommendations = decoded
-                        }
-                        
-                        // 새로운 추천 번호를 맨 앞에 추가
-                        existingRecommendations.insert(recommendation, at: 0)
-                        
-                        // 최대 50개까지만 유지
-                        if existingRecommendations.count > 50 {
-                            existingRecommendations = Array(existingRecommendations.prefix(50))
-                        }
-                        
-                        // 다시 인코딩하여 저장
-                        if let updatedData = try? JSONEncoder().encode(existingRecommendations) {
-                            UserDefaults.standard.set(updatedData, forKey: "lottoRecommendations")
-                        }
-                    }
-                }
+        notificationCenter.add(request) { error in
+            if let error = error {
+                print("❌ 알림 전송 실패: \(error.localizedDescription)")
+            } else {
+                print("✅ 알림 전송 성공: \(store.name)")
+                // 마지막 알림 시간 업데이트
+                self.lastNotificationTimes[store.id ?? ""] = Date()
             }
         }
     }
@@ -127,7 +80,7 @@ class AlertManager {
     func showPermissionAlert(on viewController: UIViewController) {
         let alert = UIAlertController(
             title: "알림 권한 필요",
-            message: "로또 번호 추천을 받기 위해서는 알림 권한이 필요합니다. 설정에서 알림을 허용해주세요.",
+            message: "로또 판매점 근처 알림을 받기 위해서는 알림 권한이 필요합니다.",
             preferredStyle: .alert
         )
         
