@@ -165,7 +165,6 @@ class MapViewController: UIViewController {
         currentLocationButton.addTarget(self, action: #selector(currentLocationButtonTapped), for: .touchUpInside)
         notificationButton.addTarget(self, action: #selector(notificationButtonTapped), for: .touchUpInside)
         searchTextField.delegate = self
-        requestNotificationPermission()
     }
     
     private func setupNotifications() {
@@ -327,24 +326,32 @@ class MapViewController: UIViewController {
     
     // MARK: - Actions
     @objc private func currentLocationButtonTapped() {
-        let status = locationManager.authorizationStatus
+        print("📍 현재 위치 버튼 탭")
         
-        switch status {
+        // 위치 권한 확인
+        switch locationManager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
-            // 현재 위치 업데이트 시작
-            LocationManager.shared.startUpdatingLocation()
-            if let location = LocationManager.shared.currentLocation {
+            // 위치 업데이트 시작
+            locationManager.startUpdatingLocation()
+            
+            // 현재 위치로 지도 이동
+            if let location = locationManager.location {
+                print("📍 현재 위치로 이동: \(location.coordinate.latitude), \(location.coordinate.longitude)")
                 moveToLocation(location)
-                // 현재 위치 기반으로 주변 판매점 다시 로드
-                if let lottoMapVC = parent as? LottoMapViewController {
-                    lottoMapVC.loadNearbyStores(latitude: location.coordinate.latitude,
-                                             longitude: location.coordinate.longitude)
-                }
+                loadLottoStores() // 주변 판매점 다시 로드
+            } else {
+                print("⚠️ 현재 위치를 찾을 수 없습니다")
+                showAlert(message: "현재 위치를 찾을 수 없습니다.")
             }
+            
         case .denied, .restricted:
+            print("⚠️ 위치 권한이 없습니다")
             showLocationPermissionAlert()
+            
         case .notDetermined:
-            LocationManager.shared.requestLocationAuthorization()
+            print("📍 위치 권한 요청")
+            locationManager.requestWhenInUseAuthorization()
+            
         @unknown default:
             break
         }
@@ -357,16 +364,19 @@ class MapViewController: UIViewController {
         updateNotificationButtonImage()  // 버튼 이미지 업데이트
     }
     
-    // 위치 이동 메서드 추가
-    func moveToLocation(_ location: CLLocation) {
+    // 위치로 이동하는 메서드 수정
+    private func moveToLocation(_ location: CLLocation) {
         let coord = NMGLatLng(lat: location.coordinate.latitude, lng: location.coordinate.longitude)
         let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
         cameraUpdate.animation = .easeIn
+        cameraUpdate.animationDuration = 0.5
         mapView.moveCamera(cameraUpdate)
         
-        // 현재 위치 오버레이 표시
+        // 현재 위치 오버레이 업데이트
         mapView.locationOverlay.location = coord
         mapView.locationOverlay.hidden = false
+        
+        print("✅ 지도 이동 완료: \(coord.lat), \(coord.lng)")
     }
     
     // MARK: - Private Methods
@@ -578,6 +588,17 @@ class MapViewController: UIViewController {
                 self?.notificationButton.tintColor = .systemBlue
             }
         }
+    }
+    
+    // 에러 표시를 위한 헬퍼 메서드
+    private func showAlert(message: String) {
+        let alert = UIAlertController(
+            title: "알림",
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        present(alert, animated: true)
     }
 }
 

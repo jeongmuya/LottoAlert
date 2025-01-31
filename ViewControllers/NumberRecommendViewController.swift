@@ -4,21 +4,18 @@ import SnapKit
 class NumberRecommendViewController: UIViewController {
     
     // MARK: - UI Components
-    private let generateButton: UIButton = {
-        let button = UIButton()
-        button.setTitle("번호 생성하기", for: .normal)
-        button.backgroundColor = .systemBlue
-        button.layer.cornerRadius = 12
-        button.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
-        return button
-    }()
-    
     private let numbersStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 15
+        stackView.spacing = 20
         stackView.alignment = .center
         return stackView
+    }()
+    
+    private lazy var eggShapeView: EggShapeView = {
+        let view = EggShapeView(frame: .zero)
+        view.backgroundColor = .clear
+        return view
     }()
     
     // 번호를 감싸는 컨테이너 뷰 추가
@@ -47,7 +44,8 @@ class NumberRecommendViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        setupActions()
+        setupGestureRecognizer()
+        generateNumbers() // 초기 번호 생성
     }
     
     // MARK: - Setup
@@ -55,8 +53,15 @@ class NumberRecommendViewController: UIViewController {
         title = "번호 추천"
         view.backgroundColor = .white
         
+        // EggShapeView 추가
+        view.addSubview(eggShapeView)
+        eggShapeView.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview().offset(-150) // 위쪽으로 조정
+            make.width.height.equalTo(300)
+        }
+        
         view.addSubview(numbersStackView)
-        view.addSubview(generateButton)
         
         // 5개의 컨테이너와 레이블 생성
         for _ in 0..<5 {
@@ -66,27 +71,26 @@ class NumberRecommendViewController: UIViewController {
             numbersStackView.addArrangedSubview(containerView)
         }
         
-        // 제약조건 수정 - 스택뷰를 아래쪽으로 이동
+        // 스택뷰 위치 조정
         numbersStackView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
-            make.bottom.equalTo(generateButton.snp.top).offset(-40)  // 버튼과의 간격 조정
+            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-50)
             make.leading.trailing.equalToSuperview().inset(20)
-        }
-        
-        generateButton.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.bottom.equalTo(view.safeAreaLayoutGuide).offset(-30)
-            make.width.equalTo(200)
-            make.height.equalTo(50)
         }
     }
     
-    private func setupActions() {
-        generateButton.addTarget(self, action: #selector(generateButtonTapped), for: .touchUpInside)
+    private func setupGestureRecognizer() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(eggTapped))
+        eggShapeView.addGestureRecognizer(tapGesture)
+        eggShapeView.isUserInteractionEnabled = true
     }
     
     // MARK: - Actions
-    @objc private func generateButtonTapped() {
+    @objc private func eggTapped() {
+        generateNumbers()
+    }
+    
+    private func generateNumbers() {
         // 5세트의 번호 생성
         for (index, (container, label)) in numberContainers.enumerated() {
             var numbers = Set<Int>()
@@ -111,9 +115,21 @@ class NumberRecommendViewController: UIViewController {
                                 duration: 0.3,
                                 options: .transitionCrossDissolve) {
                     label.text = numbersText
-                    // 특별 스타일이면 배경색 변경 (F6C928 색상)
                     container.backgroundColor = shouldGenerateSpecial ? 
                         UIColor(red: 246/255, green: 201/255, blue: 40/255, alpha: 0.5) : .clear
+                }
+            }
+        }
+        
+        // 계란 흔들기 애니메이션 수정
+        UIView.animate(withDuration: 0.1, animations: {
+            self.eggShapeView.transform = CGAffineTransform(rotationAngle: 0.1)
+        }) { _ in
+            UIView.animate(withDuration: 0.1) {
+                self.eggShapeView.transform = CGAffineTransform(rotationAngle: -0.1)
+            } completion: { _ in
+                UIView.animate(withDuration: 0.1) {
+                    self.eggShapeView.transform = CGAffineTransform.identity
                 }
             }
         }
