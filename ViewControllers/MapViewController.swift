@@ -42,6 +42,7 @@ class MapViewController: UIViewController {
         textField.layer.cornerRadius = 8
         textField.font = .systemFont(ofSize: 16)
         textField.textColor = .black
+        textField.returnKeyType = .search  // 리턴 키 타입 변경
         
         // 검색 아이콘 추가
         let searchImageView = UIImageView(image: UIImage(systemName: "magnifyingglass"))
@@ -53,12 +54,10 @@ class MapViewController: UIViewController {
         textField.leftView = leftView
         textField.leftViewMode = .always
         
-        textField.layer.shadowColor = UIColor.black.cgColor
-        textField.layer.shadowOffset = CGSize(width: 0, height: 2)
-        textField.layer.shadowOpacity = 0.3
-        textField.layer.shadowRadius = 4
-        
-        textField.layoutMargins = UIEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
+        // 그림자 최적화
+        textField.layer.shadowPath = UIBezierPath(roundedRect: textField.bounds, cornerRadius: 8).cgPath
+        textField.layer.shouldRasterize = true
+        textField.layer.rasterizationScale = UIScreen.main.scale
         
         return textField
     }()
@@ -142,6 +141,12 @@ class MapViewController: UIViewController {
             make.trailing.equalToSuperview().offset(-20)
             make.width.height.equalTo(50)
         }
+        
+        // 검색 필드 최적화
+        searchTextField.delegate = self
+        searchTextField.autocorrectionType = .no
+        searchTextField.spellCheckingType = .no
+        searchTextField.enablesReturnKeyAutomatically = true
     }
     
     private func setupMarkerManager() {
@@ -699,6 +704,22 @@ extension MapViewController: UITextFieldDelegate {
         textField.resignFirstResponder()
         return true
     }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        if textField == searchTextField {
+            showSearchViewController()
+            return false
+        }
+        return true
+    }
+    
+    private func showSearchViewController() {
+        let searchVC = LottoStoreSearchViewController()
+        searchVC.configure(with: stores)
+        searchVC.delegate = self
+        searchVC.modalPresentationStyle = .fullScreen
+        present(searchVC, animated: true)
+    }
 }
 
 // MARK: - NMFMapViewCameraDelegate
@@ -719,5 +740,17 @@ extension MapViewController: NMFMapViewTouchDelegate {
 extension MapViewController: MapViewControllerDelegate {
     func mapViewController(_ controller: LottoMapViewController, didMoveCameraTo position: NMGLatLng) {
         loadNearbyStores(latitude: position.lat, longitude: position.lng)
+    }
+}
+
+// MARK: - LottoStoreSearchViewControllerDelegate
+extension MapViewController: LottoStoreSearchViewControllerDelegate {
+    func searchViewController(_ controller: LottoStoreSearchViewController, didSelectStore store: LottoStore) {
+        guard let latitude = Double(store.latitude ?? ""),
+              let longitude = Double(store.longitude ?? "") else { return }
+        
+        let coord = NMGLatLng(lat: latitude, lng: longitude)
+        let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
+        mapView.moveCamera(cameraUpdate)
     }
 }
