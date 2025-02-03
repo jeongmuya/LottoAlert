@@ -29,7 +29,7 @@ struct LottoStore: Codable {
     var latitude: String?
     var longitude: String?
     
-    var id: String {
+    var id: String? {
         return String(number)
     }
     

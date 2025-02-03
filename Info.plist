@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+    </array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>주변 로또 판매점을 찾기 위해 위치 권한이 필요합니다.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>백그라운드에서도 주변 로또 판매점 알림을 받기 위해 항상 위치 권한이 필요합니다.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>백그라운드에서도 주변 로또 판매점 알림을 받기 위해 항상 위치 권한이 필요합니다.</string>
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>location-services</string>
+        <string>gps</string>
+    </array>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+    </dict>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.yourapp.refresh</string>
+        <string>com.yourapp.location-update</string>
+    </array>
+</dict>
+</plist> 

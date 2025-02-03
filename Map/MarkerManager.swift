@@ -13,7 +13,7 @@ import CoreLocation
 
 class MarkerManager {
     private let mapView: NMFMapView
-    private var markers: [String: NMFMarker] = [:] // id를 키로 사용
+    private var markers: [String: NMFMarker] = [:]
     
     init(mapView: NMFMapView) {
         self.mapView = mapView
@@ -53,53 +53,55 @@ class MarkerManager {
     }
     
     func createMarkers(for stores: [LottoStore]) {
-        createMarkers(for: stores, on: self.mapView)
-    }
-    
-    func createMarkers(for stores: [LottoStore], on mapView: NMFMapView) {
-        // 기존 마커 제거
         removeAllMarkers()
         
-        print("📍 마커 생성 시작: \(stores.count)개의 판매점")
-        
-        for store in stores {
+        stores.forEach { store in
             guard let latitude = Double(store.latitude ?? ""),
-                  let longitude = Double(store.longitude ?? "") else {
-                print("⚠️ 좌표 변환 실패: \(store.name)")
-                continue
-            }
+                  let longitude = Double(store.longitude ?? "") else { return }
             
-            print("✅ 마커 생성: \(store.name) at (\(latitude), \(longitude))")
-            
-            let position = NMGLatLng(lat: latitude, lng: longitude)
             let marker = NMFMarker()
-            marker.position = position
-            marker.mapView = mapView
-            
-            // 마커 정보 설정
+            marker.position = NMGLatLng(lat: latitude, lng: longitude)
             marker.captionText = store.name
+            
+            // 마커 스타일 설정
+            marker.captionTextSize = 14
             marker.captionColor = .black
             marker.captionHaloColor = .white
-            marker.captionTextSize = 14
             
-            markers[store.id] = marker
+            // 지도에 마커 표시
+            marker.mapView = mapView
+            
+            // 마커 저장
+            markers[store.id ?? String(store.number)] = marker
         }
+    }
+    
+    func createSingleMarker(for store: LottoStore) {
+        removeAllMarkers()
         
-        print("✅ 총 \(markers.count)개의 마커 생성 완료")
+        guard let latitude = Double(store.latitude ?? ""),
+              let longitude = Double(store.longitude ?? "") else { return }
+        
+        let marker = NMFMarker()
+        marker.position = NMGLatLng(lat: latitude, lng: longitude)
+        marker.captionText = store.name
+        marker.mapView = mapView
+        
+        markers[store.id ?? String(store.number)] = marker
     }
     
     private func showStoreInfo(_ store: LottoStore) {
-        if let topViewController = UIApplication.shared.keyWindow?.rootViewController?.topMostViewController {
-            let alert = UIAlertController(
-                title: store.name,
-                message: """
-                    주소: \(store.address)
-                    """,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "확인", style: .default))
-            topViewController.present(alert, animated: true)
+        guard let topViewController = UIApplication.shared.keyWindow?.rootViewController?.topMostViewController else {
+            return
         }
+        
+        let alert = UIAlertController(
+            title: store.name,
+            message: "주소: \(store.address)",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        topViewController.present(alert, animated: true)
     }
     
     private func fitMapToMarkers() {
@@ -126,17 +128,17 @@ class MarkerManager {
         let cameraUpdate = NMFCameraUpdate(fit: bounds, padding: 50)
         cameraUpdate.animation = .easeIn
         mapView.moveCamera(cameraUpdate)
-        
-        print("🎯 지도 영역 조정 완료")
+    }
+    
+    func removeMarker(for store: LottoStore) {
+        let identifier = String(store.number)
+        markers[identifier]?.mapView = nil
+        markers.removeValue(forKey: identifier)
     }
     
     func removeAllMarkers() {
         markers.values.forEach { $0.mapView = nil }
         markers.removeAll()
-    }
-    
-    func addMarkers(for stores: [LottoStore]) {
-        createMarkers(for: stores)
     }
 }
 
