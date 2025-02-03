@@ -23,32 +23,11 @@
 			);
 			target = F9B275A32D3ACEAC005C2F76 /* LottoAlert */;
 		};
-		F95A3EB72D50B4210098FDBA /* Exceptions for "Sources" folder in "LottoAlert" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				LottoAlert/LottoAlert.xcdatamodeld,
-			);
-			target = F9B275A32D3ACEAC005C2F76 /* LottoAlert */;
-		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
-/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
-		F95A3EB82D50B4210098FDBA /* Exceptions for "Sources" folder in "Compile Sources" phase from "LottoAlert" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			buildPhase = F9B275A02D3ACEAC005C2F76 /* Sources */;
-			membershipExceptions = (
-				LottoAlert/LottoAlert.xcdatamodeld,
-			);
-		};
-/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F95A3E772D50B3DB0098FDBA /* Sources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				F95A3EB72D50B4210098FDBA /* Exceptions for "Sources" folder in "LottoAlert" target */,
-				F95A3EB82D50B4210098FDBA /* Exceptions for "Sources" folder in "Compile Sources" phase from "LottoAlert" target */,
-			);
 			path = Sources;
 			sourceTree = "<group>";
 		};
