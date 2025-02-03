@@ -33,16 +33,15 @@ class TabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "number.circle.fill")
         )
         
-        // 히스토리 화면
-        let historyVC = LottoHistoryViewController()
-        let historyNav = UINavigationController(rootViewController: historyVC)
-        historyNav.tabBarItem = UITabBarItem(
-            title: "히스토리",
-            image: UIImage(systemName: "clock"),
-            selectedImage: UIImage(systemName: "clock.fill")
-        )
+//        // 히스토리 화면
+//        let historyNav = UINavigationController(rootViewController: historyVC)
+//        historyNav.tabBarItem = UITabBarItem(
+//            title: "히스토리",
+//            image: UIImage(systemName: "clock"),
+//            selectedImage: UIImage(systemName: "clock.fill")
+//        )
         
-        viewControllers = [mapNav, recommendNav, historyNav]
+        viewControllers = [mapNav, recommendNav]
     }
     
     private func setupTabBar() {

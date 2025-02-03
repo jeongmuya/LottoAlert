@@ -187,7 +187,6 @@ class MapViewController: UIViewController {
     
     private func setupActions() {
         currentLocationButton.addTarget(self, action: #selector(currentLocationButtonTapped), for: .touchUpInside)
-        notificationButton.addTarget(self, action: #selector(notificationButtonTapped), for: .touchUpInside)
         searchTextField.delegate = self
     }
     
@@ -353,13 +352,6 @@ class MapViewController: UIViewController {
         @unknown default:
             break
         }
-    }
-    
-    @objc private func notificationButtonTapped() {
-        let historyVC = LottoHistoryViewController()
-        navigationController?.pushViewController(historyVC, animated: true)
-        notificationCount = 0  // 카운트 초기화
-        updateNotificationButtonImage()  // 버튼 이미지 업데이트
     }
     
     // 위치로 이동하는 메서드 수정

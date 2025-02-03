@@ -167,4 +167,3 @@ class AlertManager {
 extension Notification.Name {
     static let notificationCountDidChange = Notification.Name("notificationCountDidChange")
 }
-
