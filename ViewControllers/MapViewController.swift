@@ -217,20 +217,16 @@ class MapViewController: UIViewController {
     }
     
     private func checkLocationAuthorization() {
-        let status = locationManager.authorizationStatus
-        
-        switch status {
+        switch locationManager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             locationManager.startUpdatingLocation()
-            // 현재 위치 기반으로 주변 판매점 로드
-            if let location = LocationManager.shared.currentLocation {
-                moveToLocation(location)
-                loadLottoStores()
-            }
+            print("✅ 위치 권한 승인됨")
         case .denied, .restricted:
             showLocationPermissionAlert()
+            print("❌ 위치 권한 거부됨")
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
+            print("🔄 위치 권한 요청 중")
         @unknown default:
             break
         }
@@ -652,16 +648,15 @@ extension MapViewController: CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         
         print("📍 위치 업데이트: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-        LocationManager.shared.updateCurrentLocation(location)
         
         // 위치 업데이트
         moveToLocation(location)
         
-        // 주변 판매점 로드 및 모니터링 시작
-        loadLottoStores()
+        // 주변 판매점 확인
+        LocationManager.shared.locationUpdateHandler?(location)
         
-        // 위치 업데이트 중지
-        locationManager.stopUpdatingLocation()
+        // 위치 업데이트는 계속 유지
+        // locationManager.stopUpdatingLocation() 제거
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {

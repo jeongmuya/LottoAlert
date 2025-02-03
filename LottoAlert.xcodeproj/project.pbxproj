@@ -31,6 +31,11 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		F9A559E42D4FE39400ABCECE /* Services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Services;
+			sourceTree = "<group>";
+		};
 		F9B275A62D3ACEAC005C2F76 /* LottoAlert */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -102,6 +107,7 @@
 				F9B275BF2D3ACEC7005C2F76 /* Map */,
 				F9B275A62D3ACEAC005C2F76 /* LottoAlert */,
 				F9B275A52D3ACEAC005C2F76 /* Products */,
+				F9A559E42D4FE39400ABCECE /* Services */,
 			);
 			sourceTree = "<group>";
 		};
@@ -130,6 +136,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				F97DE2A52D4BEB8D00122D56 /* Views */,
+				F9A559E42D4FE39400ABCECE /* Services */,
 				F9B275A62D3ACEAC005C2F76 /* LottoAlert */,
 				F9B275BF2D3ACEC7005C2F76 /* Map */,
 				F9B275C12D3ACEE5005C2F76 /* Alert */,

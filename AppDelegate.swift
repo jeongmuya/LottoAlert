@@ -9,6 +9,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // 알림 델리게이트 설정
         UNUserNotificationCenter.current().delegate = self
         
+        // 알림 카테고리 설정
+        let notificationCategory = UNNotificationCategory(
+            identifier: "LOTTO_STORE_NEARBY",
+            actions: [],
+            intentIdentifiers: [],
+            options: .customDismissAction
+        )
+        
+        UNUserNotificationCenter.current().setNotificationCategories([notificationCategory])
+        
         // 백그라운드 작업 등록
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: "com.yourapp.refresh",
@@ -32,6 +42,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                               willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
+        print("✅ 알림 표시됨: \(notification.request.content.title)")
+    }
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+        print("✅ 알림 응답 받음: \(response.notification.request.content.title)")
+        completionHandler()
     }
     
     private func handleAppRefresh(task: BGAppRefreshTask) {
