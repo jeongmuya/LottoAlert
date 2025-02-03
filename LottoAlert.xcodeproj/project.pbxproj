@@ -16,67 +16,48 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F9B275B92D3ACEAE005C2F76 /* Exceptions for "LottoAlert" folder in "LottoAlert" target */ = {
+		F95A3E7C2D50B4030098FDBA /* Exceptions for "Resources" folder in "LottoAlert" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = F9B275A32D3ACEAC005C2F76 /* LottoAlert */;
 		};
+		F95A3EB72D50B4210098FDBA /* Exceptions for "Sources" folder in "LottoAlert" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LottoAlert/LottoAlert.xcdatamodeld,
+			);
+			target = F9B275A32D3ACEAC005C2F76 /* LottoAlert */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		F95A3EB82D50B4210098FDBA /* Exceptions for "Sources" folder in "Compile Sources" phase from "LottoAlert" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = F9B275A02D3ACEAC005C2F76 /* Sources */;
+			membershipExceptions = (
+				LottoAlert/LottoAlert.xcdatamodeld,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		F97DE2A52D4BEB8D00122D56 /* Views */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Views;
-			sourceTree = "<group>";
-		};
-		F9A559E42D4FE39400ABCECE /* Services */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Services;
-			sourceTree = "<group>";
-		};
-		F9B275A62D3ACEAC005C2F76 /* LottoAlert */ = {
+		F95A3E772D50B3DB0098FDBA /* Sources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F9B275B92D3ACEAE005C2F76 /* Exceptions for "LottoAlert" folder in "LottoAlert" target */,
+				F95A3EB72D50B4210098FDBA /* Exceptions for "Sources" folder in "LottoAlert" target */,
+				F95A3EB82D50B4210098FDBA /* Exceptions for "Sources" folder in "Compile Sources" phase from "LottoAlert" target */,
 			);
-			path = LottoAlert;
+			path = Sources;
 			sourceTree = "<group>";
 		};
-		F9B275BF2D3ACEC7005C2F76 /* Map */ = {
+		F95A3E7B2D50B3F00098FDBA /* Resources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Map;
-			sourceTree = "<group>";
-		};
-		F9B275C12D3ACEE5005C2F76 /* Alert */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Alert;
-			sourceTree = "<group>";
-		};
-		F9B275C22D3ACEF8005C2F76 /* RandomNumber */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = RandomNumber;
-			sourceTree = "<group>";
-		};
-		F9BFB5942D3FB6DF00BF6564 /* Utilities */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Utilities;
-			sourceTree = "<group>";
-		};
-		F9BFB5952D3FB70A00BF6564 /* Managers */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Managers;
-			sourceTree = "<group>";
-		};
-		F9BFB5962D3FB72500BF6564 /* Models */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Models;
-			sourceTree = "<group>";
-		};
-		F9BFB5972D3FB73800BF6564 /* ViewControllers */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ViewControllers;
+			exceptions = (
+				F95A3E7C2D50B4030098FDBA /* Exceptions for "Resources" folder in "LottoAlert" target */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -97,17 +78,9 @@
 		F9B2759B2D3ACEAC005C2F76 = {
 			isa = PBXGroup;
 			children = (
-				F97DE2A52D4BEB8D00122D56 /* Views */,
-				F9BFB5972D3FB73800BF6564 /* ViewControllers */,
-				F9BFB5962D3FB72500BF6564 /* Models */,
-				F9BFB5952D3FB70A00BF6564 /* Managers */,
-				F9BFB5942D3FB6DF00BF6564 /* Utilities */,
-				F9B275C22D3ACEF8005C2F76 /* RandomNumber */,
-				F9B275C12D3ACEE5005C2F76 /* Alert */,
-				F9B275BF2D3ACEC7005C2F76 /* Map */,
-				F9B275A62D3ACEAC005C2F76 /* LottoAlert */,
+				F95A3E7B2D50B3F00098FDBA /* Resources */,
+				F95A3E772D50B3DB0098FDBA /* Sources */,
 				F9B275A52D3ACEAC005C2F76 /* Products */,
-				F9A559E42D4FE39400ABCECE /* Services */,
 			);
 			sourceTree = "<group>";
 		};
@@ -135,16 +108,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				F97DE2A52D4BEB8D00122D56 /* Views */,
-				F9A559E42D4FE39400ABCECE /* Services */,
-				F9B275A62D3ACEAC005C2F76 /* LottoAlert */,
-				F9B275BF2D3ACEC7005C2F76 /* Map */,
-				F9B275C12D3ACEE5005C2F76 /* Alert */,
-				F9B275C22D3ACEF8005C2F76 /* RandomNumber */,
-				F9BFB5942D3FB6DF00BF6564 /* Utilities */,
-				F9BFB5952D3FB70A00BF6564 /* Managers */,
-				F9BFB5962D3FB72500BF6564 /* Models */,
-				F9BFB5972D3FB73800BF6564 /* ViewControllers */,
+				F95A3E772D50B3DB0098FDBA /* Sources */,
+				F95A3E7B2D50B3F00098FDBA /* Resources */,
 			);
 			name = LottoAlert;
 			productName = LottoAlert;
