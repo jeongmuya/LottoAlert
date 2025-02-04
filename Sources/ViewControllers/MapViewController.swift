@@ -53,7 +53,7 @@ class MapViewController: UIViewController {
         loadLottoStores()
         
         // 카메라 델리게이트 설정
-        mapView.addCameraDelegate(delegate: self)
+//        mapView.addCameraDelegate(delegate: self)
     }
     
     // MARK: - Setup Methods
@@ -69,7 +69,7 @@ class MapViewController: UIViewController {
         mapView.maxZoomLevel = 20
         
         // 델리게이트 설정 수정
-        mapView.addCameraDelegate(delegate: self)  // delegate: 파라미터 명시
+//        mapView.addCameraDelegate(delegate: self)  // delegate: 파라미터 명시
     }
     
     private func setupMarkerManager() {
@@ -407,22 +407,6 @@ class MapViewController: UIViewController {
         }
     }
     
-    private func saveRecommendation(_ recommendation: LottoRecommendation) {
-        if let data = UserDefaults.standard.data(forKey: "lottoRecommendations"),
-           var recommendations = try? JSONDecoder().decode([LottoRecommendation].self, from: data) {
-            recommendations.insert(recommendation, at: 0)
-            if recommendations.count > 50 {
-                recommendations = Array(recommendations.prefix(50))
-            }
-            if let encoded = try? JSONEncoder().encode(recommendations) {
-                UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
-            }
-        } else {
-            if let encoded = try? JSONEncoder().encode([recommendation]) {
-                UserDefaults.standard.set(encoded, forKey: "lottoRecommendations")
-            }
-        }
-    }
 }
 
 // MARK: - CLLocationManagerDelegate
@@ -497,20 +481,20 @@ extension MapViewController: CLLocationManagerDelegate {
 //    }
 //}
 
-// MARK: - NMFMapViewCameraDelegate
-extension MapViewController: NMFMapViewCameraDelegate {
-    func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
-    let center = mapView.cameraPosition.target
-    
-    // 현재 지도 중심 좌표로 주변 판매점 검색
-    loadNearbyStores(latitude: center.lat, longitude: center.lng)
-    
-    print("📍 지도 중심 이동: \(center.lat), \(center.lng)")
-
-    }
-    func mapView(_ mapView: NMFMapView, cameraWilChangeByReason reason: Int, animated: Bool) {
-        // 카메라 이동 시작시 기존 마커 제거
-        clearMarkers()
-    }
-    
-}
+//// MARK: - NMFMapViewCameraDelegate
+//extension MapViewController: NMFMapViewCameraDelegate {
+//    func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
+//    let center = mapView.cameraPosition.target
+//    
+//    // 현재 지도 중심 좌표로 주변 판매점 검색
+//    loadNearbyStores(latitude: center.lat, longitude: center.lng)
+//    
+//    print("📍 지도 중심 이동: \(center.lat), \(center.lng)")
+//
+//    }
+//    func mapView(_ mapView: NMFMapView, cameraWilChangeByReason reason: Int, animated: Bool) {
+//        // 카메라 이동 시작시 기존 마커 제거
+//        clearMarkers()
+//    }
+//    
+//}
