@@ -6,154 +6,175 @@
 //
 
 import UIKit
-import SwiftUI
 import NMapsMap
-import SnapKit
 import CoreLocation
 
-class MarkerManager {
+class MarkerManager: NSObject {
+    // MARK: - Properties
     private let mapView: NMFMapView
-    private var markers: [String: NMFMarker] = [:]
+    private var markers: [NMFMarker] = []
+    private var clusters: [NMFMarker] = []
     
+    // MARK: - Constants
+    private enum ClusterSize {
+        static let small = 10
+        static let medium = 100
+        static let large = 500
+        static let clusteringDistance: Double = 100.0 // 클러스터링 거리 (미터)
+    }
+    
+    // MARK: - Initialization
     init(mapView: NMFMapView) {
         self.mapView = mapView
+        super.init()
+        setupMapView()
+        setupMapViewDelegate()
     }
     
-    // 테스트용 단일 마커 생성
-    func createTestMarker() {
-        let marker = NMFMarker()
-        marker.position = NMGLatLng(lat: 37.4563, lng: 126.6489)
-        marker.captionText = "테스트 복권방"
-        
-        // 마커 스타일 설정
-        marker.iconImage = NMF_MARKER_IMAGE_BLACK
-        marker.iconTintColor = .red
-        marker.width = 25
-        marker.height = 40
-        
-        // 캡션 스타일 설정
-        marker.captionTextSize = 14
-        marker.captionColor = .black
-        marker.captionHaloColor = .white
-        
-        // 마커 클릭 이벤트
-        marker.touchHandler = { [weak self] overlay in
-            print("복권방이 선택되었습니다")
-            return true
-        }
-        
-        // 지도에 마커 표시
-        marker.mapView = self.mapView
-        markers[marker.captionText] = marker
-        
-        // 해당 위치로 카메라 이동
-        let cameraUpdate = NMFCameraUpdate(scrollTo: marker.position)
-        cameraUpdate.animation = .easeIn
-        mapView.moveCamera(cameraUpdate)
+    private func setupMapView() {
+        mapView.minZoomLevel = 6
+        mapView.maxZoomLevel = 18
     }
     
+    private func setupMapViewDelegate() {
+        // 지도 줌 레벨 변경 시 클러스터링 업데이트
+        mapView.addCameraDelegate(delegate: self)
+    }
+    
+    // MARK: - Public Methods
     func createMarkers(for stores: [LottoStore]) {
-        removeAllMarkers()
+        clearMarkers()
         
+        // 마커 생성
         stores.forEach { store in
-            guard let latitude = Double(store.latitude ?? ""),
-                  let longitude = Double(store.longitude ?? "") else { return }
-            
-            let marker = NMFMarker()
-            marker.position = NMGLatLng(lat: latitude, lng: longitude)
-            marker.captionText = store.name
-            
-            // 마커 스타일 설정
-            marker.captionTextSize = 14
-            marker.captionColor = .black
-            marker.captionHaloColor = .white
-            
-            // 지도에 마커 표시
-            marker.mapView = mapView
-            
-            // 마커 저장
-            markers[store.id ?? String(store.number)] = marker
-        }
-    }
-    
-    func createSingleMarker(for store: LottoStore) {
-        removeAllMarkers()
-        
-        guard let latitude = Double(store.latitude ?? ""),
-              let longitude = Double(store.longitude ?? "") else { return }
-        
-        let marker = NMFMarker()
-        marker.position = NMGLatLng(lat: latitude, lng: longitude)
-        marker.captionText = store.name
-        marker.mapView = mapView
-        
-        markers[store.id ?? String(store.number)] = marker
-    }
-    
-    private func showStoreInfo(_ store: LottoStore) {
-        guard let topViewController = UIApplication.shared.keyWindow?.rootViewController?.topMostViewController else {
-            return
+            if let marker = createMarker(for: store) {
+                markers.append(marker)
+            }
         }
         
-        let alert = UIAlertController(
-            title: store.name,
-            message: "주소: \(store.address)",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
-        topViewController.present(alert, animated: true)
+        updateClustering()
     }
     
-    private func fitMapToMarkers() {
-        guard !markers.isEmpty else { return }
-        
-        let positions = markers.values.map { $0.position }
-        var minLat = positions[0].lat
-        var maxLat = positions[0].lat
-        var minLng = positions[0].lng
-        var maxLng = positions[0].lng
-        
-        positions.forEach { position in
-            minLat = min(minLat, position.lat)
-            maxLat = max(maxLat, position.lat)
-            minLng = min(minLng, position.lng)
-            maxLng = max(maxLng, position.lng)
-        }
-        
-        let bounds = NMGLatLngBounds(
-            southWest: NMGLatLng(lat: minLat, lng: minLng),
-            northEast: NMGLatLng(lat: maxLat, lng: maxLng)
-        )
-        
-        let cameraUpdate = NMFCameraUpdate(fit: bounds, padding: 50)
-        cameraUpdate.animation = .easeIn
-        mapView.moveCamera(cameraUpdate)
-    }
-    
-    func removeMarker(for store: LottoStore) {
-        let identifier = String(store.number)
-        markers[identifier]?.mapView = nil
-        markers.removeValue(forKey: identifier)
+    func clearMarkers() {
+        markers.forEach { $0.mapView = nil }
+        markers.removeAll()
+        clusters.forEach { $0.mapView = nil }
+        clusters.removeAll()
     }
     
     func removeAllMarkers() {
-        markers.values.forEach { $0.mapView = nil }
-        markers.removeAll()
+        clearMarkers()
+    }
+    
+    // MARK: - Private Methods
+    private func createMarker(for store: LottoStore) -> NMFMarker? {
+        guard let latitude = Double(store.latitude ?? ""),
+              let longitude = Double(store.longitude ?? "") else { return nil }
+        
+        let marker = NMFMarker(position: NMGLatLng(lat: latitude, lng: longitude))
+        configureMarker(marker, with: store)
+        return marker
+    }
+    
+    private func configureMarker(_ marker: NMFMarker, with store: LottoStore) {
+        marker.captionText = store.name
+        marker.captionTextSize = 12
+        marker.captionColor = .black
+        marker.captionHaloColor = .white
+        marker.width = 30
+        marker.height = 40
+    }
+    
+    private func updateClustering() {
+        // 기존 클러스터 제거
+        clusters.forEach { $0.mapView = nil }
+        clusters.removeAll()
+        
+        // 모든 마커 숨기기
+        markers.forEach { $0.mapView = nil }
+        
+        // 현재 줌 레벨에 따라 클러스터링 여부 결정
+        if mapView.zoomLevel < 13 {
+            createClusters()
+        } else {
+            // 줌 레벨이 높으면 개별 마커 표시
+            markers.forEach { $0.mapView = mapView }
+        }
+    }
+    
+    private func createClusters() {
+        var processedMarkers = Set<NMFMarker>()
+        var clusterGroups: [[NMFMarker]] = []
+        
+        // 마커들을 거리에 따라 그룹화
+        for marker in markers where !processedMarkers.contains(marker) {
+            var cluster: [NMFMarker] = [marker]
+            processedMarkers.insert(marker)
+            
+            for otherMarker in markers where !processedMarkers.contains(otherMarker) {
+                let distance = calculateDistance(marker.position, otherMarker.position)
+                if distance <= ClusterSize.clusteringDistance {
+                    cluster.append(otherMarker)
+                    processedMarkers.insert(otherMarker)
+                }
+            }
+            
+            if cluster.count > 1 {
+                clusterGroups.append(cluster)
+            } else {
+                // 단일 마커는 지도에 직접 표시
+                marker.mapView = mapView
+            }
+        }
+        
+        // 클러스터 마커 생성
+        for group in clusterGroups {
+            createClusterMarker(for: group)
+        }
+    }
+    
+    private func createClusterMarker(for group: [NMFMarker]) {
+        // 클러스터의 중심점 계산
+        let centerLat = group.map { $0.position.lat }.reduce(0.0, +) / Double(group.count)
+        let centerLng = group.map { $0.position.lng }.reduce(0.0, +) / Double(group.count)
+        
+        let clusterMarker = NMFMarker(position: NMGLatLng(lat: centerLat, lng: centerLng))
+        
+        // 클러스터 크기에 따른 스타일 설정
+        switch group.count {
+        case 0..<ClusterSize.small:
+            clusterMarker.iconImage = NMFOverlayImage(name: "cluster_small")
+            clusterMarker.width = 40
+            clusterMarker.height = 40
+        case ClusterSize.small..<ClusterSize.medium:
+            clusterMarker.iconImage = NMFOverlayImage(name: "cluster_medium")
+            clusterMarker.width = 50
+            clusterMarker.height = 50
+        default:
+            clusterMarker.iconImage = NMFOverlayImage(name: "cluster_large")
+            clusterMarker.width = 60
+            clusterMarker.height = 60
+        }
+        
+        clusterMarker.captionText = "\(group.count)"
+        clusterMarker.captionTextSize = 14
+        clusterMarker.captionColor = .white
+        clusterMarker.captionHaloColor = .clear
+        clusterMarker.mapView = mapView
+        
+        clusters.append(clusterMarker)
+    }
+    
+    private func calculateDistance(_ pos1: NMGLatLng, _ pos2: NMGLatLng) -> Double {
+        let location1 = CLLocation(latitude: pos1.lat, longitude: pos1.lng)
+        let location2 = CLLocation(latitude: pos2.lat, longitude: pos2.lng)
+        return location1.distance(from: location2)
     }
 }
 
-// UIViewController 확장 - 최상위 뷰컨트롤러 찾기
-extension UIViewController {
-    var topMostViewController: UIViewController {
-        if let presented = presentedViewController {
-            return presented.topMostViewController
-        }
-        if let navigation = self as? UINavigationController {
-            return navigation.visibleViewController?.topMostViewController ?? navigation
-        }
-        if let tab = self as? UITabBarController {
-            return tab.selectedViewController?.topMostViewController ?? tab
-        }
-        return self
+// MARK: - NMFMapViewCameraDelegate
+extension MarkerManager: NMFMapViewCameraDelegate {
+    func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
+        updateClustering()
     }
 }

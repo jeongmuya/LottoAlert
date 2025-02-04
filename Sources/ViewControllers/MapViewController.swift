@@ -41,8 +41,8 @@ class MapViewController: UIViewController {
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        //        setupUI()
         setupMapView()
-//        setupUI()
         setupMarkerManager()
         setupLocationManager()
         setupActions()
@@ -471,31 +471,31 @@ extension MapViewController: CLLocationManagerDelegate {
     }
 }
 
-// MARK: - UITextFieldDelegate
-extension MapViewController: UITextFieldDelegate {
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        guard let searchText = textField.text?.trimmingCharacters(in: .whitespaces),
-              !searchText.isEmpty else { return true }
-        
-        // 검색어로 필터링
-        let filteredStores = stores.filter { store in
-            store.name.contains(searchText) || store.address.contains(searchText)
-        }
-        
-        if let firstStore = filteredStores.first,
-           let latString = firstStore.latitude,
-           let lngString = firstStore.longitude,
-           let latitude = Double(latString),
-           let longitude = Double(lngString) {
-            let coord = NMGLatLng(lat: latitude, lng: longitude)
-            let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
-            mapView.moveCamera(cameraUpdate)
-        }
-        
-        textField.resignFirstResponder()
-        return true
-    }
-}
+//// MARK: - UITextFieldDelegate
+//extension MapViewController: UITextFieldDelegate {
+//    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+//        guard let searchText = textField.text?.trimmingCharacters(in: .whitespaces),
+//              !searchText.isEmpty else { return true }
+//        
+//        // 검색어로 필터링
+//        let filteredStores = stores.filter { store in
+//            store.name.contains(searchText) || store.address.contains(searchText)
+//        }
+//        
+//        if let firstStore = filteredStores.first,
+//           let latString = firstStore.latitude,
+//           let lngString = firstStore.longitude,
+//           let latitude = Double(latString),
+//           let longitude = Double(lngString) {
+//            let coord = NMGLatLng(lat: latitude, lng: longitude)
+//            let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
+//            mapView.moveCamera(cameraUpdate)
+//        }
+//        
+//        textField.resignFirstResponder()
+//        return true
+//    }
+//}
 
 // MARK: - NMFMapViewCameraDelegate
 extension MapViewController: NMFMapViewCameraDelegate {
