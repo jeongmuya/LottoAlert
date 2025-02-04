@@ -11,8 +11,6 @@ import CoreLocation
 
 // MARK: - Models
 fileprivate struct GeocodingResponse: Codable {
-    let status: String
-    let meta: Meta
     let addresses: [Address]
     let errorMessage: String?
 }
@@ -24,12 +22,8 @@ fileprivate struct Meta: Codable {
 }
 
 fileprivate struct Address: Codable {
-    let roadAddress: String
-    let jibunAddress: String
-    let englishAddress: String
     let x: String  // 경도
     let y: String  // 위도
-    let distance: Double
 }
 
 // 외부에서도 사용할 수 있도록 public으로 선언 (한 번만 선언)
@@ -73,19 +67,14 @@ class GeocodingService {
         // 저장된 API 키 사용
         request.setValue(clientId, forHTTPHeaderField: "X-NCP-APIGW-API-KEY-ID")
         request.setValue(clientSecret, forHTTPHeaderField: "X-NCP-APIGW-API-KEY")
-        
-        print("🔍 지오코딩 요청: \(address)")
-        // API 키는 보안을 위해 로그에 출력하지 않음
-        print("🌐 URL: \(url.absoluteString)")
+
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             if let httpResponse = response as? HTTPURLResponse {
-                print("📡 응답 상태 코드: \(httpResponse.statusCode)")
-                
+
                 if let responseString = String(data: data, encoding: .utf8) {
-                    print("📦 응답 데이터: \(responseString)")
                 }
             }
             

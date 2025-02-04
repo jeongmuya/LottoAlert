@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleIdentifier</key>
+	<string></string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Light.otf</string>
@@ -41,6 +43,7 @@
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
+        <string>processing</string>
 		<string>location</string>
 	</array>
 	<key>NaverAPIKeys</key>

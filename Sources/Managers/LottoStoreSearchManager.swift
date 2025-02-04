@@ -36,31 +36,4 @@ class LottoStoreSearchManager {
         
         userDefaults.set(history, forKey: searchHistoryKey)
     }
-    
-    // 검색 기록 삭제
-    func deleteSearchHistory(_ query: String) {
-        var history = getSearchHistory()
-        history.removeAll { $0 == query }
-        userDefaults.set(history, forKey: searchHistoryKey)
-    }
-    
-    // 전체 검색 기록 삭제
-    func clearAllSearchHistory() {
-        userDefaults.removeObject(forKey: searchHistoryKey)
-    }
-    
-    // 검색 성능 최적화
-    func searchStores(_ query: String, in stores: [LottoStore]) -> [LottoStore] {
-        let searchTerms = query.lowercased().split(separator: " ")
-        
-        return stores.filter { store in
-            let storeName = store.name.lowercased()
-            let storeAddress = store.address.lowercased()
-            
-            return searchTerms.allSatisfy { term in
-                storeName.contains(term) || storeAddress.contains(term)
-            }
-        }
-    }
 }
-

@@ -99,6 +99,7 @@ class NumberRecommendViewController: UIViewController {
         return tableView
     }()
     
+    
     // 생성된 로또 번호들을 저장할 배열 추가
     private var generatedNumbers: [[Int]] = []
     
@@ -139,7 +140,7 @@ class NumberRecommendViewController: UIViewController {
         // 오름차순으로 정렬하여 반환
         return Array(numbers).sorted()
     }
-
+    
     
     // MARK: - Lotto API Model
     struct LottoResult: Codable {
@@ -198,8 +199,10 @@ class NumberRecommendViewController: UIViewController {
     }
     
     // 타이머 객체
-    private var timer: Timer?
-
+    //    private var timer: Timer?
+    
+    private var timer: DispatchSourceTimer?
+    
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -213,9 +216,11 @@ class NumberRecommendViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        timer?.invalidate()
-        timer = nil
     }
+    deinit {
+        stopTimer()
+    }
+
     
     // MARK: - Setup
     private func setupUI() {
@@ -343,7 +348,23 @@ class NumberRecommendViewController: UIViewController {
 
     // MARK: - Timer
     private func startTimer() {
-        timer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(updateTimer), userInfo: nil, repeats: true)
+        stopTimer()
+        
+        // DispatchSourceTimer 새엇ㅇ
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now(), repeating: .seconds(1))
+        
+        timer.setEventHandler { [weak self] in
+            self?.updateTimer()
+        }
+        
+        timer.resume()
+        self.timer = timer
+    }
+    
+    private func stopTimer() {
+        timer?.cancel()
+        timer = nil
     }
     
     @objc private func updateTimer() {
@@ -366,8 +387,7 @@ class NumberRecommendViewController: UIViewController {
         } else {
             // 추첨 시간이 지난 경우
             remainingTimeLabel.text = "⏱ 다음 추첨을 기다려주세요"
-            timer?.invalidate()
-            timer = nil
+            stopTimer() // 현재 타이머 중지
             startTimer() // 다음 회차를 위해 타이머 재시작
         }
     }
@@ -485,11 +505,6 @@ class NumberCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDat
             make.edges.equalToSuperview().inset(0) // 여백 없이 꽉 채움
         }
     }
-    
-//    func configure(with numbers: [Int]) {
-//        self.numbers = numbers
-//        numberCollectionView.reloadData()
-//    }
 }
 // MARK: - extension NumberCell
 extension NumberCell: UICollectionViewDelegateFlowLayout {

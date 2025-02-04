@@ -26,38 +26,6 @@ class MapViewController: UIViewController {
     private var monitoredRegions: [CLCircularRegion] = []
     private let alertManager = AlertManager.shared
 
-    // 판매점별 마지막 알림 시간을 저장
-    private var lastNotificationTimes: [String: Date] = [:]
-    private let minimumNotificationInterval: TimeInterval = 300 // 5분으로 수정
-    
-    // MARK: - UI Components
-    private let searchTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "지역 이름으로 검색"
-        textField.backgroundColor = .white
-        textField.layer.cornerRadius = 8
-        textField.font = .systemFont(ofSize: 16)
-        textField.textColor = .black
-        textField.returnKeyType = .search  // 리턴 키 타입 변경
-        
-        // 검색 아이콘 추가
-        let searchImageView = UIImageView(image: UIImage(systemName: "magnifyingglass"))
-        searchImageView.tintColor = .gray
-        searchImageView.contentMode = .center
-        let leftView = UIView(frame: CGRect(x: 0, y: 0, width: 40, height: 20))
-        leftView.addSubview(searchImageView)
-        searchImageView.center = leftView.center
-        textField.leftView = leftView
-        textField.leftViewMode = .always
-        
-        // 그림자 최적화
-        textField.layer.shadowPath = UIBezierPath(roundedRect: textField.bounds, cornerRadius: 8).cgPath
-        textField.layer.shouldRasterize = true
-        textField.layer.rasterizationScale = UIScreen.main.scale
-        
-        return textField
-    }()
-    
     private let currentLocationButton: UIButton = {
         let button = UIButton()
         button.setImage(UIImage(systemName: "location"), for: .normal)
@@ -74,7 +42,7 @@ class MapViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupMapView()
-        setupUI()
+//        setupUI()
         setupMarkerManager()
         setupLocationManager()
         setupActions()
@@ -83,6 +51,9 @@ class MapViewController: UIViewController {
         // 위치 권한 확인 및 위치 업데이트 시작
         checkLocationAuthorization()
         loadLottoStores()
+        
+        // 카메라 델리게이트 설정
+        mapView.addCameraDelegate(delegate: self)
     }
     
     // MARK: - Setup Methods
@@ -99,31 +70,6 @@ class MapViewController: UIViewController {
         
         // 델리게이트 설정 수정
         mapView.addCameraDelegate(delegate: self)  // delegate: 파라미터 명시
-        mapView.touchDelegate = self
-    }
-    
-    private func setupUI() {
-        view.addSubview(searchTextField)
-        searchTextField.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(-30)
-            make.leading.equalToSuperview().offset(20)
-            make.trailing.equalToSuperview().offset(-20)
-            make.height.equalTo(44)
-        }
-        
-        view.addSubview(currentLocationButton)
-        currentLocationButton.snp.makeConstraints { make in
-            make.top.equalTo(searchTextField.snp.bottom).offset(10)
-            make.trailing.equalToSuperview().offset(-20)
-            make.width.height.equalTo(50)
-        }
-        
-        
-        // 검색 필드 최적화
-        searchTextField.delegate = self
-        searchTextField.autocorrectionType = .no
-        searchTextField.spellCheckingType = .no
-        searchTextField.enablesReturnKeyAutomatically = true
     }
     
     private func setupMarkerManager() {
@@ -164,7 +110,6 @@ class MapViewController: UIViewController {
     
     private func setupActions() {
         currentLocationButton.addTarget(self, action: #selector(currentLocationButtonTapped), for: .touchUpInside)
-        searchTextField.delegate = self
     }
 
     
@@ -393,7 +338,6 @@ class MapViewController: UIViewController {
             if distance <= monitoringRadius {
                 print("✅ 반경 내 매장 발견: \(store.name) (거리: \(Int(distance))m)")
                 DispatchQueue.main.async { [weak self] in
-                    self?.sendLottoNumberNotification(for: store)
                 }
             }
             
@@ -432,90 +376,7 @@ class MapViewController: UIViewController {
         
         return (sortedNumbers, [])
     }
-    
-    // MARK: - Notification Methods
-    private func sendLottoNumberNotification(for store: LottoStore) {
-        // 마지막 알림 시간 확인
-        if let lastTime = lastNotificationTimes[store.id ?? ""],
-           Date().timeIntervalSince(lastTime) < minimumNotificationInterval {
-            print("⏱ \(store.name)의 다음 알림까지 대기 중")
-            return
-        }
 
-        guard let currentLocation = LocationManager.shared.currentLocation,
-              let latitude = Double(store.latitude ?? ""),
-              let longitude = Double(store.longitude ?? "") else {
-            print("⚠️ 위치 정보 누락")
-            return
-        }
-        
-        let storeLocation = CLLocation(latitude: latitude, longitude: longitude)
-        let distance = currentLocation.distance(from: storeLocation)
-        let distanceInMeters = Int(distance)
-        
-        // 추천 번호 생성
-        let (recommendedNumbers, specialNumbers) = generateLottoNumbers()
-        
-        // 알림 메시지에 특별 번호 표시
-        let numbersText = recommendedNumbers.map { number -> String in
-            let formatted = String(format: "%02d", number)
-            return specialNumbers.contains(number) ? "✨\(formatted)✨" : formatted
-        }.joined(separator: ", ")
-        
-        print("📍 알림 전송 시도: \(store.name) (거리: \(distanceInMeters)m)")
-        
-        let content = UNMutableNotificationContent()
-        content.title = "🎱 로또 번호 추천"
-        content.body = """
-            \(store.name) 근처입니다! (약 \(distanceInMeters)m)
-            주소: \(store.address)
-            추천 번호: \(numbersText)
-            """
-        content.sound = UNNotificationSound.default
-        
-        // 즉시 알림을 위한 트리거
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: trigger
-        )
-        
-        // completionHandler를 별도의 메서드로 분리
-        UNUserNotificationCenter.current().add(
-            request,
-            withCompletionHandler: makeNotificationCompletionHandler(for: store, numbers: recommendedNumbers, special: specialNumbers)
-        )
-    }
-    
-    private func makeNotificationCompletionHandler(
-        for store: LottoStore,
-        numbers: [Int],
-        special: [Int]
-    ) -> ((Error?) -> Void) {
-        return { [weak self] error in
-            if let error = error {
-                print("❌ 알림 전송 실패: \(error.localizedDescription)")
-            } else {
-                print("✅ 알림 전송 성공: \(store.name)")
-                self?.handleSuccessfulNotification(store: store, numbers: numbers, special: special)
-            }
-        }
-    }
-    
-    private func handleSuccessfulNotification(store: LottoStore, numbers: [Int], special: [Int]) {
-        DispatchQueue.main.async { [weak self] in
-            self?.lastNotificationTimes[store.id ?? ""] = Date()
-            
-            let recommendation = LottoRecommendation(
-                numbers: numbers,
-                storeName: store.name,
-                specialNumbers: special
-            )
-            self?.saveRecommendation(recommendation)
-        }
-    }
     
     // 에러 표시를 위한 헬퍼 메서드
     private func showAlert(message: String) {
@@ -532,15 +393,16 @@ class MapViewController: UIViewController {
         lottoAPIManager.fetchNearbyLottoStores(
             latitude: latitude,
             longitude: longitude,
-            radius: 3000
+            radius: 3000 // 반경 설정 (미터 단위)
         ) { [weak self] result in
             switch result {
             case .success(let stores):
-                self?.stores = stores
-                self?.markerManager.createMarkers(for: stores)
-                self?.startMonitoringStores()
+                DispatchQueue.main.async {
+                    self?.stores = stores
+                    self?.markerManager.createMarkers(for: stores)
+                }
             case .failure(let error):
-                print("Error loading stores: \(error)")
+                print("❌ 판매점 로드 실패: \(error)")
             }
         }
     }
@@ -602,7 +464,6 @@ extension MapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard let store = stores.first(where: { String($0.number) == region.identifier }) else { return }
         print("🎯 판매점 반경 진입: \(store.name)")
-        sendLottoNumberNotification(for: store)
     }
     
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
@@ -634,53 +495,22 @@ extension MapViewController: UITextFieldDelegate {
         textField.resignFirstResponder()
         return true
     }
-    
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        if textField == searchTextField {
-            showSearchViewController()
-            return false
-        }
-        return true
-    }
-    
-    private func showSearchViewController() {
-        let searchVC = LottoStoreSearchViewController()
-        searchVC.configure(with: stores)
-        searchVC.delegate = self
-        searchVC.modalPresentationStyle = .fullScreen
-        present(searchVC, animated: true)
-    }
 }
 
 // MARK: - NMFMapViewCameraDelegate
 extension MapViewController: NMFMapViewCameraDelegate {
     func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
-        // 카메라 이동 시 필요한 로직 구현
-    }
-}
+    let center = mapView.cameraPosition.target
+    
+    // 현재 지도 중심 좌표로 주변 판매점 검색
+    loadNearbyStores(latitude: center.lat, longitude: center.lng)
+    
+    print("📍 지도 중심 이동: \(center.lat), \(center.lng)")
 
-// MARK: - NMFMapViewTouchDelegate
-extension MapViewController: NMFMapViewTouchDelegate {
-    func mapView(_ mapView: NMFMapView, didTapMap latlng: NMGLatLng) {
-        searchTextField.resignFirstResponder()
     }
-}
-
-// MARK: - MapViewControllerDelegate
-extension MapViewController: MapViewControllerDelegate {
-    func mapViewController(_ controller: LottoMapViewController, didMoveCameraTo position: NMGLatLng) {
-        loadNearbyStores(latitude: position.lat, longitude: position.lng)
+    func mapView(_ mapView: NMFMapView, cameraWilChangeByReason reason: Int, animated: Bool) {
+        // 카메라 이동 시작시 기존 마커 제거
+        clearMarkers()
     }
-}
-
-// MARK: - LottoStoreSearchViewControllerDelegate
-extension MapViewController: LottoStoreSearchViewControllerDelegate {
-    func searchViewController(_ controller: LottoStoreSearchViewController, didSelectStore store: LottoStore) {
-        guard let latitude = Double(store.latitude ?? ""),
-              let longitude = Double(store.longitude ?? "") else { return }
-        
-        let coord = NMGLatLng(lat: latitude, lng: longitude)
-        let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
-        mapView.moveCamera(cameraUpdate)
-    }
+    
 }

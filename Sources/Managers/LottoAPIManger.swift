@@ -10,12 +10,13 @@ import CoreLocation
 
 // 서버 에러 응답을 위한 구조체
 struct ServerError: Codable {
-    let code: Int
-    let msg: String
+let code: Int
+let msg: String
 }
 
 class LottoAPIManager {
     static let shared = LottoAPIManager()
+    private var currentTask: Task<Void, Never>?
     
     // 누락된 API 관련 상수 추가
     private let baseURL = "https://api.odcloud.kr/api"
@@ -40,6 +41,7 @@ class LottoAPIManager {
         case serverError(Int, String)
         case invalidStatusCode(Int)
         case locationError
+        case geocodingError(Error)
         
         var errorDescription: String? {
             switch self {
@@ -59,121 +61,180 @@ class LottoAPIManager {
                 return "잘못된 응답 상태 코드: \(code)"
             case .locationError:
                 return "위치 정보를 찾을 수 없습니다."
+            case .geocodingError(let error):
+                return "지오코딩 에러"
             }
         }
+    }
+    
+    // 지오코딩 로직을 별도의 함수로 분리
+    private func performGeocoding(for location: CLLocation) async throws -> [CLPlacemark] {
+        let geocoder = CLGeocoder()
+        var retryCount = 0
+        var placemarks: [CLPlacemark]?
+
+        while retryCount < 3 && placemarks == nil {
+            do {
+                placemarks = try await geocoder.reverseGeocodeLocation(location)
+                break
+            } catch {
+                retryCount += 1
+                if retryCount < 3 {
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1초 대기
+                }
+            }
+        }
+
+        guard let result = placemarks else {
+            throw APIError.locationError
+        }
+        return result
     }
     
     // 현재 위치 기반 로또 판매점 조회 메서드 추가
     func fetchNearbyLottoStores(latitude: Double,
-                               longitude: Double,
-                               radius: Int = 3000,
-                               completion: @escaping (Result<[LottoStore], Error>) -> Void) {
-        print("📡 검색 반경: \(radius)m")
-        print("📡 현재 위치(\(latitude), \(longitude)) 기준으로 주변 판매점 검색 시작")
+                                longitude: Double,
+                                radius: Int = 3000,
+                                completion: @escaping (Result<[LottoStore], Error>) -> Void) {
         
-        let totalPages = 9 // 8394개 데이터를 1000개씩 나누면 약 9페이지
-        var allStores: [LottoStore] = []
-        let group = DispatchGroup()
+        // 이전 작업 취소
+        currentTask?.cancel()
         
-        for page in 1...totalPages {
-            group.enter()
+        
+        currentTask = Task {
+            //        print("📡 검색 반경: \(radius)m")
+            //        print("📡 현재 위치(\(latitude), \(longitude)) 기준으로 주변 판매점 검색 시작")
             
-            let urlString = "\(baseURL)\(path)?page=\(page)&perPage=1000&serviceKey=\(serviceKey)"
-            guard let url = URL(string: urlString) else {
-                group.leave()
-                continue
+            do {
+                // 1. CoreData에서 전체 데이터 로드
+                let allStores = CoreDataManager.shared.fetchStores()
+                
+                // 2. 현재 위치 기준으로 반경 내 판매점 필터링
+                let currentLocation = CLLocation(latitude: latitude, longitude: longitude)
+                
+                
+                let nearbyStores = allStores.filter { store in
+                    guard let storeLat = Double(store.latitude ?? ""),
+                          let storeLng = Double(store.longitude ?? "") else {
+                        return false
+                    }
+                    
+                    let storeLocation = CLLocation(latitude: storeLat, longitude: storeLng)
+                    let distance = currentLocation.distance(from: storeLocation)
+                    return distance <= Double(radius)
+                }
+                
+                // 3. 거리순 정렬
+                let sortedStores = nearbyStores.sorted { store1, store2 in
+                    guard let lat1 = Double(store1.latitude ?? ""),
+                          let lng1 = Double(store1.longitude ?? ""),
+                          let lat2 = Double(store2.latitude ?? ""),
+                          let lng2 = Double(store2.longitude ?? "") else {
+                        return false
+                    }
+                    let location1 = CLLocation(latitude: lat1, longitude: lng1)
+                    let location2 = CLLocation(latitude: lat2, longitude: lng2)
+                    
+                    return currentLocation.distance(from: location1) < currentLocation.distance(from: location2)
+                }
+                
+                if Task.isCancelled { return }
+                
+                DispatchQueue.main.async {
+                    completion(.success(sortedStores))
+                }
+                
+            } catch {
+                if !Task.isCancelled {
+                    DispatchQueue.main.async {
+                        completion(.failure(error))
+                    }
+                }
             }
             
-            let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-                defer { group.leave() }
-                
-                if let error = error {
-                    print("❌ 네트워크 에러: \(error.localizedDescription)")
-                    completion(.failure(APIError.networkError(error)))
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    completion(.failure(APIError.invalidResponse))
-                    return
-                }
-                
-                print("📡 응답 상태 코드: \(httpResponse.statusCode)")
-                
-                guard (200...299).contains(httpResponse.statusCode) else {
-                    completion(.failure(APIError.invalidStatusCode(httpResponse.statusCode)))
-                    return
-                }
-                
-                guard let data = data else {
-                    completion(.failure(APIError.noData))
-                    return
-                }
-                
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("📦 응답 데이터: \(responseString)")
-                }
-                
-                do {
-                    let response = try JSONDecoder().decode(LottoAPIResponse.self, from: data)
-                    allStores.append(contentsOf: response.data)
-                    print("✅ \(page)페이지 데이터 수신 완료 (누적: \(allStores.count)개)")
-                } catch {
-                    print("❌ \(page)페이지 디코딩 에러: \(error)")
-                }
-            }
-            task.resume()
-        }
-        
-        group.notify(queue: .main) { [weak self] in
-            print("📍 전체 \(allStores.count)개의 판매점 데이터 수집 완료")
+            let totalPages = 9
+            var allStores: [LottoStore] = []
+            let group = DispatchGroup()
             
-            // 지오코딩 및 거리 필터링 처리
-            self?.processStoresData(allStores, 
-                                  currentLatitude: latitude, 
-                                  currentLongitude: longitude, 
-                                  radius: radius, 
-                                  completion: completion)
+            for page in 1...totalPages {
+                group.enter()
+                
+                let urlString = "\(baseURL)\(path)?page=\(page)&perPage=1000&serviceKey=\(serviceKey)"
+                guard let url = URL(string: urlString) else {
+                    group.leave()
+                    continue
+                }
+                
+                let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+                    defer { group.leave() }
+                    
+                    if let error = error {
+                        print("❌ 네트워크 에러: \(error.localizedDescription)")
+                        completion(.failure(APIError.networkError(error)))
+                        return
+                    }
+                    
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        completion(.failure(APIError.invalidResponse))
+                        return
+                    }
+                    
+                    print("📡 응답 상태 코드: \(httpResponse.statusCode)")
+                    
+                    guard (200...299).contains(httpResponse.statusCode) else {
+                        completion(.failure(APIError.invalidStatusCode(httpResponse.statusCode)))
+                        return
+                    }
+                    
+                    guard let data = data else {
+                        completion(.failure(APIError.noData))
+                        return
+                    }
+                    
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("📦 응답 데이터: \(responseString)")
+                    }
+                    
+                    do {
+                        let response = try JSONDecoder().decode(LottoAPIResponse.self, from: data)
+                        allStores.append(contentsOf: response.data)
+                        print("✅ \(page)페이지 데이터 수신 완료 (누적: \(allStores.count)개)")
+                    } catch {
+                        print("❌ \(page)페이지 디코딩 에러: \(error)")
+                    }
+                }
+                task.resume()
+            }
+            
+            group.notify(queue: .main) { [weak self] in
+                print("📍 전체 \(allStores.count)개의 판매점 데이터 수집 완료")
+                
+                self?.processStoresData(allStores,
+                                        currentLatitude: latitude,
+                                        currentLongitude: longitude,
+                                        radius: radius,
+                                        completion: completion)
+            }
         }
     }
     
     private func processStoresData(_ stores: [LottoStore],
-                                 currentLatitude: Double,
-                                 currentLongitude: Double,
-                                 radius: Int,
-                                 completion: @escaping (Result<[LottoStore], Error>) -> Void) {
+                                   currentLatitude: Double,
+                                   currentLongitude: Double,
+                                   radius: Int,
+                                   completion: @escaping (Result<[LottoStore], Error>) -> Void) {
         let currentLocation = CLLocation(latitude: currentLatitude, longitude: currentLongitude)
-        let geocoder = CLGeocoder()
-        
+
         Task {
             do {
-                // 1. 재시도 로직 추가
-                var retryCount = 0
-                var placemarks: [CLPlacemark]?
-                
-                while retryCount < 3 && placemarks == nil {
-                    do {
-                        placemarks = try await geocoder.reverseGeocodeLocation(currentLocation)
-                        break
-                    } catch {
-                        retryCount += 1
-                        if retryCount < 3 {
-                            try await Task.sleep(nanoseconds: 1_000_000_000) // 1초 대기
-                        }
-                    }
-                }
-                
-                // 2. 에러 처리 개선
-                guard let placemark = placemarks?.first else {
+                let placemarks = try await performGeocoding(for: currentLocation)
+                guard let placemark = placemarks.first else {
                     print("⚠️ 위치 정보를 찾을 수 없습니다. 기본 반경 검색으로 전환합니다.")
-                    // 기본 반경 검색으로 전환
-                    let nearbyStores = filterStoresByDistance(stores, 
-                                                            currentLocation: currentLocation, 
-                                                            radius: Double(radius))
+                    let nearbyStores = filterStoresByDistance(stores, currentLocation: currentLocation, radius: Double(radius))
                     completion(.success(nearbyStores))
                     return
                 }
-                
+
                 // 3. 주소 기반으로 1차 필터링
                 let administrativeArea = placemark.administrativeArea ?? "" // 시/도
                 let locality = placemark.locality ?? "" // 시/군/구
@@ -188,17 +249,17 @@ class LottoAPIManager {
                     
                     // 시/도 처리 개선
                     let cityName = administrativeArea.replacingOccurrences(of: "광역시", with: "")
-                                                   .replacingOccurrences(of: "특별시", with: "")
-                                                   .replacingOccurrences(of: "시", with: "")
+                        .replacingOccurrences(of: "특별시", with: "")
+                        .replacingOccurrences(of: "시", with: "")
                     
                     // 구/군 처리 개선
                     let districtName = locality.replacingOccurrences(of: "시", with: "")
-                                              .replacingOccurrences(of: "구", with: "")
+                        .replacingOccurrences(of: "구", with: "")
                     
                     // 동/읍/면 처리 추가
                     let neighborhoodName = subLocality.replacingOccurrences(of: "동", with: "")
-                                                     .replacingOccurrences(of: "읍", with: "")
-                                                     .replacingOccurrences(of: "면", with: "")
+                        .replacingOccurrences(of: "읍", with: "")
+                        .replacingOccurrences(of: "면", with: "")
                     
                     // 주소 매칭 조건 개선
                     let containsCity = store.address.contains(cityName)
@@ -237,8 +298,8 @@ class LottoAPIManager {
                         updatedStore.longitude = String(coordinate.longitude)
                         
                         // 6. 거리 계산 및 반경 내 매장만 추가
-                        let storeLocation = CLLocation(latitude: coordinate.latitude, 
-                                                     longitude: coordinate.longitude)
+                        let storeLocation = CLLocation(latitude: coordinate.latitude,
+                                                       longitude: coordinate.longitude)
                         let distance = currentLocation.distance(from: storeLocation)
                         
                         if distance <= Double(radius) {
@@ -284,19 +345,16 @@ class LottoAPIManager {
                 
             } catch {
                 print("❌ 지오코딩 오류 발생: \(error.localizedDescription)")
-                // 3. 폴백 처리
-                let nearbyStores = filterStoresByDistance(stores, 
-                                                        currentLocation: currentLocation, 
-                                                        radius: Double(radius))
+                let nearbyStores = filterStoresByDistance(stores, currentLocation: currentLocation, radius: Double(radius))
                 completion(.success(nearbyStores))
             }
         }
     }
     
     // 거리 기반 필터링 헬퍼 메서드
-    private func filterStoresByDistance(_ stores: [LottoStore], 
-                                          currentLocation: CLLocation, 
-                                          radius: Double) -> [LottoStore] {
+    private func filterStoresByDistance(_ stores: [LottoStore],
+                                        currentLocation: CLLocation,
+                                        radius: Double) -> [LottoStore] {
         return stores.compactMap { store in
             guard let latString = store.latitude,
                   let lngString = store.longitude,
