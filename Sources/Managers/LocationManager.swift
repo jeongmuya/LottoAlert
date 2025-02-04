@@ -9,7 +9,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     private let storeProximityRadius: Double = 1000  // 1km
     private var monitoredRegions = Set<CLCircularRegion>()
     private var lastNotificationTimes: [String: Date] = [:]
-    private let minimumNotificationInterval: TimeInterval = 3600 // 1시간
+    private let minimumNotificationInterval: TimeInterval = 36
     private(set) var currentLocation: CLLocation?
     
     var authorizationStatusHandler: ((CLAuthorizationStatus) -> Void)?
@@ -45,6 +45,8 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     }
     
     func startMonitoringStores(_ stores: [LottoStore]) {
+        print("🔍 LocationManager: 판매점 모니터링 시작...")
+        
         // 기존 모니터링 중지
         monitoredRegions.forEach { locationManager.stopMonitoring(for: $0) }
         monitoredRegions.removeAll()
@@ -52,7 +54,10 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
         for store in stores {
             guard let latitude = Double(store.latitude ?? ""),
                   let longitude = Double(store.longitude ?? ""),
-                  let storeId = store.id else { continue }
+                  let storeId = store.id else {
+                print("⚠️ 판매점 좌표 오류: \(store.name)")
+                continue
+            }
             
             let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
             let region = CLCircularRegion(
@@ -66,11 +71,33 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
             
             locationManager.startMonitoring(for: region)
             monitoredRegions.insert(region)
+            print("✅ 모니터링 추가: \(store.name)")
+            // 현재 위치가 이 region 안에 있는지 확인
+                      checkIfCurrentlyInRegion(region)
         }
         
         print("✅ 총 \(monitoredRegions.count)개의 판매점 모니터링 시작")
     }
     
+    // 현재 위치가 region 안에 있는지 확인하는 메서드
+    private func checkIfCurrentlyInRegion(_ region: CLCircularRegion) {
+         guard let currentLocation = currentLocation else {
+             // 현재 위치를 아직 모르는 경우 위치 업데이트 시작
+             locationManager.startUpdatingLocation()
+             return
+         }
+        let regionCenter = CLLocation(latitude: region.center.latitude, longitude: region.center.longitude)
+        let distance = currentLocation.distance(from: regionCenter)
+        
+        if distance <= region.radius {
+            // 현재 위치가 반경 내에 있음
+            let components = region.identifier.split(separator: "|")
+            guard components.count == 2 else { return }
+            let storeName = String(components[1])
+            sendStoreNotification(storeName: storeName)
+        }
+    }
+
     // MARK: - Notifications
     private func sendStoreNotification(storeName: String) {
         // 마지막 알림 시간 확인
@@ -114,6 +141,14 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
         guard let location = locations.last else { return }
         currentLocation = location
         locationUpdateHandler?(location)
+        
+        // 현재 모니터링 중인 모든 region에 대해 확인
+        for region in monitoredRegions {
+                 checkIfCurrentlyInRegion(region)
+             }
+        
+        // 초기 위치 확인 후 업데이트 중지
+        locationManager.stopUpdatingLocation()
     }
     
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {

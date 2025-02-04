@@ -149,12 +149,14 @@ class MapViewController: UIViewController {
             latitude: locationManager.location?.coordinate.latitude ?? 37.5666,
             longitude: locationManager.location?.coordinate.longitude ?? 126.9784,
             radius: 3000
-        )  { [weak self] result in
+        ) { [weak self] result in
             switch result {
             case .success(let stores):
                 DispatchQueue.main.async {
                     self?.stores = stores
-                    self?.markerManager.createMarkers(for: stores)  // 마커 생성
+                    self?.markerManager.createMarkers(for: stores)
+                    // LocationManager에 stores 전달하여 모니터링 시작
+                    LocationManager.shared.startMonitoringStores(stores)
                     print("✅ 로드된 판매점 수: \(stores.count)")
                 }
             case .failure(let error):
@@ -442,10 +444,13 @@ extension MapViewController: CLLocationManagerDelegate {
         print("Location Error: \(error.localizedDescription)")
         showError(error)
     }
-    
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        guard let store = stores.first(where: { String($0.number) == region.identifier }) else { return }
-        print("🎯 판매점 반경 진입: \(store.name)")
+        guard let circularRegion = region as? CLCircularRegion else { return }
+        let components = circularRegion.identifier.split(separator: "|")
+        guard components.count == 2 else { return }
+        
+        let storeName = String(components[1])
+        print("🎯 판매점 반경 진입: \(storeName)")
     }
     
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
