@@ -12,6 +12,7 @@
 		<string>Pretendard-Regular.otf</string>
 		<string>Pretendard-SemiBold.otf</string>
 		<string>Pretendard-Thin.otf</string>
+		<string>Pretendard-ExtraBold.otf</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict/>

@@ -25,11 +25,7 @@ class MapViewController: UIViewController {
     private let monitoringRadius: CLLocationDistance = 1000 // 1km 반경
     private var monitoredRegions: [CLCircularRegion] = []
     private let alertManager = AlertManager.shared
-    private var notificationCount: Int = 0 {
-        didSet {
-            updateNotificationButtonImage()
-        }
-    }
+
     // 판매점별 마지막 알림 시간을 저장
     private var lastNotificationTimes: [String: Date] = [:]
     private let minimumNotificationInterval: TimeInterval = 300 // 5분으로 수정
@@ -73,19 +69,7 @@ class MapViewController: UIViewController {
         button.layer.shadowOpacity = 0.2
         return button
     }()
-    
-    private let notificationButton: UIButton = {
-        let button = UIButton()
-        button.setImage(UIImage(systemName: "bell"), for: .normal)
-        button.backgroundColor = .white
-        button.layer.cornerRadius = 25
-        button.tintColor = .systemBlue
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowOpacity = 0.2
-        return button
-    }()
-    
+        
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -94,7 +78,6 @@ class MapViewController: UIViewController {
         setupMarkerManager()
         setupLocationManager()
         setupActions()
-        setupNotifications()
         requestNotificationPermission()
         
         // 위치 권한 확인 및 위치 업데이트 시작
@@ -135,12 +118,6 @@ class MapViewController: UIViewController {
             make.width.height.equalTo(50)
         }
         
-        view.addSubview(notificationButton)
-        notificationButton.snp.makeConstraints { make in
-            make.top.equalTo(currentLocationButton.snp.bottom).offset(10)
-            make.trailing.equalToSuperview().offset(-20)
-            make.width.height.equalTo(50)
-        }
         
         // 검색 필드 최적화
         searchTextField.delegate = self
@@ -189,15 +166,7 @@ class MapViewController: UIViewController {
         currentLocationButton.addTarget(self, action: #selector(currentLocationButtonTapped), for: .touchUpInside)
         searchTextField.delegate = self
     }
-    
-    private func setupNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleNotificationCountChange),
-            name: .notificationCountDidChange,
-            object: nil
-        )
-    }
+
     
     private func requestNotificationPermission() {
         // 클로저를 별도의 메서드로 분리
@@ -538,8 +507,6 @@ class MapViewController: UIViewController {
     private func handleSuccessfulNotification(store: LottoStore, numbers: [Int], special: [Int]) {
         DispatchQueue.main.async { [weak self] in
             self?.lastNotificationTimes[store.id ?? ""] = Date()
-            self?.notificationCount += 1
-            self?.updateNotificationButtonImage()
             
             let recommendation = LottoRecommendation(
                 numbers: numbers,
@@ -547,30 +514,6 @@ class MapViewController: UIViewController {
                 specialNumbers: special
             )
             self?.saveRecommendation(recommendation)
-        }
-    }
-    
-    @objc private func handleNotificationCountChange(_ notification: Notification) {
-        DispatchQueue.main.async { [weak self] in
-            if let count = notification.userInfo?["count"] as? Int {
-                self?.notificationCount = count
-            }
-        }
-    }
-    
-    private func updateNotificationButtonImage() {
-        DispatchQueue.main.async { [weak self] in
-            // 알림이 있을 때는 채워진 벨 아이콘을 빨간색으로
-            if self?.notificationCount ?? 0 > 0 {
-                let image = UIImage(systemName: "bell.fill")
-                self?.notificationButton.setImage(image, for: .normal)
-                self?.notificationButton.tintColor = .systemRed
-            } else {
-                // 알림이 없을 때는 기본 벨 아이콘을 파란색으로
-                let image = UIImage(systemName: "bell")
-                self?.notificationButton.setImage(image, for: .normal)
-                self?.notificationButton.tintColor = .systemBlue
-            }
         }
     }
     
