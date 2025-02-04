@@ -24,7 +24,6 @@ class MapViewController: UIViewController {
     private let notificationCenter = UNUserNotificationCenter.current()
     private let monitoringRadius: CLLocationDistance = 1000 // 1km 반경
     private var monitoredRegions: [CLCircularRegion] = []
-    private let alertManager = AlertManager.shared
 
     private let currentLocationButton: UIButton = {
         let button = UIButton()
@@ -46,7 +45,6 @@ class MapViewController: UIViewController {
         setupMarkerManager()
         setupLocationManager()
         setupActions()
-        requestNotificationPermission()
         
         // 위치 권한 확인 및 위치 업데이트 시작
         checkLocationAuthorization()
@@ -113,21 +111,21 @@ class MapViewController: UIViewController {
     }
 
     
-    private func requestNotificationPermission() {
-        // 클로저를 별도의 메서드로 분리
-        let completionHandler: (Bool) -> Void = { [weak self] granted in
-            guard let self = self else { return }
-            
-            if !granted {
-                DispatchQueue.main.async {
-                    self.alertManager.showPermissionAlert(on: self)
-                }
-            }
-        }
-        
-        // 명시적인 파라미터로 전달
-        alertManager.requestNotificationPermission(completionHandler: completionHandler)
-    }
+//    private func requestNotificationPermission() {
+//        // 클로저를 별도의 메서드로 분리
+//        let completionHandler: (Bool) -> Void = { [weak self] granted in
+//            guard let self = self else { return }
+//            
+//            if !granted {
+//                DispatchQueue.main.async {
+//                    self.alertManager.showPermissionAlert(on: self)
+//                }
+//            }
+//        }
+//        
+//        // 명시적인 파라미터로 전달
+//        alertManager.requestNotificationPermission(completionHandler: completionHandler)
+//    }
     
     private func checkLocationAuthorization() {
         switch locationManager.authorizationStatus {
@@ -151,14 +149,16 @@ class MapViewController: UIViewController {
             latitude: locationManager.location?.coordinate.latitude ?? 37.5666,
             longitude: locationManager.location?.coordinate.longitude ?? 126.9784,
             radius: 3000
-        ) { [weak self] (result: Result<[LottoStore], Error>) in  // 타입 명시
+        )  { [weak self] result in
             switch result {
             case .success(let stores):
-                self?.stores = stores
-                self?.markerManager.createMarkers(for: stores)
-                self?.startMonitoringStores()
+                DispatchQueue.main.async {
+                    self?.stores = stores
+                    self?.markerManager.createMarkers(for: stores)  // 마커 생성
+                    print("✅ 로드된 판매점 수: \(stores.count)")
+                }
             case .failure(let error):
-                print("Error loading stores: \(error)")
+                print("❌ 판매점 로드 실패: \(error)")
             }
         }
     }
@@ -317,10 +317,10 @@ class MapViewController: UIViewController {
         monitoredRegions.forEach { locationManager.stopMonitoring(for: $0) }
         monitoredRegions.removeAll()
         
-        guard let currentLocation = LocationManager.shared.currentLocation else {
-            print("⚠️ 현재 위치를 찾을 수 없습니다")
-            return
-        }
+        guard let currentLocation = locationManager.location else {
+              print("⚠️ 현재 위치를 찾을 수 없습니다")
+              return
+          }
         
         for store in stores {
             guard let latitude = store.latitude,
@@ -336,10 +336,8 @@ class MapViewController: UIViewController {
             
             // 모니터링 반경 내에 있는 경우 알림 전송
             if distance <= monitoringRadius {
-                print("✅ 반경 내 매장 발견: \(store.name) (거리: \(Int(distance))m)")
-                DispatchQueue.main.async { [weak self] in
-                }
-            }
+                   print("✅ 반경 내 매장 발견: \(store.name) (거리: \(Int(distance))m)")
+               }
             
             // 지역 모니터링 설정
             let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
@@ -454,47 +452,3 @@ extension MapViewController: CLLocationManagerDelegate {
         print("지역 모니터링 실패: \(error.localizedDescription)")
     }
 }
-
-//// MARK: - UITextFieldDelegate
-//extension MapViewController: UITextFieldDelegate {
-//    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-//        guard let searchText = textField.text?.trimmingCharacters(in: .whitespaces),
-//              !searchText.isEmpty else { return true }
-//        
-//        // 검색어로 필터링
-//        let filteredStores = stores.filter { store in
-//            store.name.contains(searchText) || store.address.contains(searchText)
-//        }
-//        
-//        if let firstStore = filteredStores.first,
-//           let latString = firstStore.latitude,
-//           let lngString = firstStore.longitude,
-//           let latitude = Double(latString),
-//           let longitude = Double(lngString) {
-//            let coord = NMGLatLng(lat: latitude, lng: longitude)
-//            let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: 15)
-//            mapView.moveCamera(cameraUpdate)
-//        }
-//        
-//        textField.resignFirstResponder()
-//        return true
-//    }
-//}
-
-//// MARK: - NMFMapViewCameraDelegate
-//extension MapViewController: NMFMapViewCameraDelegate {
-//    func mapView(_ mapView: NMFMapView, cameraDidChangeByReason reason: Int, animated: Bool) {
-//    let center = mapView.cameraPosition.target
-//    
-//    // 현재 지도 중심 좌표로 주변 판매점 검색
-//    loadNearbyStores(latitude: center.lat, longitude: center.lng)
-//    
-//    print("📍 지도 중심 이동: \(center.lat), \(center.lng)")
-//
-//    }
-//    func mapView(_ mapView: NMFMapView, cameraWilChangeByReason reason: Int, animated: Bool) {
-//        // 카메라 이동 시작시 기존 마커 제거
-//        clearMarkers()
-//    }
-//    
-//}

@@ -42,18 +42,6 @@ class MarkerManager: NSObject {
     }
     
     // MARK: - Public Methods
-    func createMarkers(for stores: [LottoStore]) {
-        clearMarkers()
-        
-        // 마커 생성
-        stores.forEach { store in
-            if let marker = createMarker(for: store) {
-                markers.append(marker)
-            }
-        }
-        
-        updateClustering()
-    }
     
     func clearMarkers() {
         markers.forEach { $0.mapView = nil }
@@ -67,22 +55,37 @@ class MarkerManager: NSObject {
     }
     
     // MARK: - Private Methods
+    func createMarkers(for stores: [LottoStore]) {
+        clearMarkers()
+        
+        // 마커 생성 및 즉시 지도에 표시
+        stores.forEach { store in
+            if let marker = createMarker(for: store) {
+                marker.mapView = mapView  // 즉시 지도에 표시
+                markers.append(marker)
+            }
+        }
+    }
+    
+    
     private func createMarker(for store: LottoStore) -> NMFMarker? {
         guard let latitude = Double(store.latitude ?? ""),
               let longitude = Double(store.longitude ?? "") else { return nil }
         
         let marker = NMFMarker(position: NMGLatLng(lat: latitude, lng: longitude))
-        configureMarker(marker, with: store)
-        return marker
-    }
     
-    private func configureMarker(_ marker: NMFMarker, with store: LottoStore) {
-        marker.captionText = store.name
-        marker.captionTextSize = 12
-        marker.captionColor = .black
-        marker.captionHaloColor = .white
-        marker.width = 30
-        marker.height = 40
+    
+            marker.captionText = store.name
+            marker.captionTextSize = 12
+            marker.captionColor = .black
+            marker.captionHaloColor = .white
+            marker.width = 30
+            marker.height = 40
+            // 마커 이미지 설정
+            // marker.iconImage = NMFOverlayImage(name: "marker_icon")
+            
+            return marker
+        
     }
     
     private func updateClustering() {
