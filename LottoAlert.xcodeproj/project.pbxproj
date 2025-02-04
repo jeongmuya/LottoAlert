@@ -39,6 +39,11 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		F95CBBC92D513403003EE0A7 /* Font */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Font;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +62,7 @@
 		F9B2759B2D3ACEAC005C2F76 = {
 			isa = PBXGroup;
 			children = (
+				F95CBBC92D513403003EE0A7 /* Font */,
 				F95A3E7B2D50B3F00098FDBA /* Resources */,
 				F95A3E772D50B3DB0098FDBA /* Sources */,
 				F9B275A52D3ACEAC005C2F76 /* Products */,
@@ -89,6 +95,7 @@
 			fileSystemSynchronizedGroups = (
 				F95A3E772D50B3DB0098FDBA /* Sources */,
 				F95A3E7B2D50B3F00098FDBA /* Resources */,
+				F95CBBC92D513403003EE0A7 /* Font */,
 			);
 			name = LottoAlert;
 			productName = LottoAlert;
