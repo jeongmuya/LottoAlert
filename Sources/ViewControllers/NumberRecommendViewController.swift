@@ -1,10 +1,20 @@
 import UIKit
 import SnapKit
 import Foundation
+import Lottie
 
 class NumberRecommendViewController: UIViewController {
     
     // MARK: - Properties
+    
+    // Lottie animation 프로퍼티
+    private let fireworksAnimationView: FireworksAnimationView = {
+        let animationView = FireworksAnimationView(frame: UIScreen.main.bounds)  // 전체 화면 크기로 초기화
+        animationView.isUserInteractionEnabled = false  // 터치 이벤트 방지
+        animationView.backgroundColor = .clear
+        return animationView
+    }()
+    
     
     // 최상단 "번호 추천" 라벨
     private let titleLabel: UILabel = {
@@ -161,6 +171,7 @@ class NumberRecommendViewController: UIViewController {
     }()
     
     
+    
     // 생성된 로또 번호들을 저장할 배열 추가
     private var generatedNumbers: [[Int]] = []
     
@@ -181,6 +192,13 @@ class NumberRecommendViewController: UIViewController {
         if  !isNumbersGenerated {
             getNumberButton.setTitle("황금 번호 다시 받기", for: .normal)
             isNumbersGenerated = true
+        }
+        
+        // 파이어워크 애니메이션 실행
+        fireworksAnimationView.playAnimation { [weak self] completed in
+            if completed {
+                // 애니메이션이 완료된 후 추가 작업이 필요한 경우 여기에 구현
+            }
         }
         
         // 버튼 눌렀을 때 진동 효과
@@ -330,7 +348,8 @@ class NumberRecommendViewController: UIViewController {
             view.addSubview($0)
             
         }
-        
+        // 파이어워크 애니메이션 뷰 추가
+          view.addSubview(fireworksAnimationView)
         setupConstraints()
     }
     
@@ -405,6 +424,11 @@ class NumberRecommendViewController: UIViewController {
             make.height.equalTo(view.snp.height).multipliedBy(0.4) // 화면 높이의 40%
             make.bottom.lessThanOrEqualTo(view.safeAreaLayoutGuide).offset(-20)
         }
+        
+        // 파이어워크 애니메이션 뷰 제약조건 추가
+              fireworksAnimationView.snp.makeConstraints { make in
+                  make.edges.equalToSuperview()  // 전체 화면을 덮도록 설정
+              }
         
     }
     
@@ -732,14 +756,6 @@ class NumberItemCell: UICollectionViewCell {
     }
 }
 
-
-// 배경색 설정을 위한 Extension
-//extension UIButton {
-//    func setBackgroundColor(_ color: UIColor, for state: UIControl.State) {
-//        let image = UIImage.pixel(ofColor: color)
-//        self.setBackgroundImage(image, for: state)
-//    }
-//}
 
 // 1픽셀 이미지 생성을 위한 Extension
 extension UIImage {
