@@ -56,7 +56,7 @@ class TabBarController: UITabBarController {
     
     private func setupTabBar() {
         tabBar.tintColor = .darkGray
-        tabBar.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
+        tabBar.backgroundColor = .white
         tabBar.isTranslucent = false
         
         // 쉐도우 추가

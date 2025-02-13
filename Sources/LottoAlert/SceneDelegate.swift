@@ -17,14 +17,24 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // 윈도우 설정
         window = UIWindow(windowScene: windowScene)
         
-        let tabBarController = TabBarController()
+        // 런치스크린 뷰컨트롤러 설정
+        let launchScreenVC = LaunchScreenViewController()
         
-        window?.rootViewController = tabBarController
+        // 애니메이션 완료 후 실행될 코드
+        launchScreenVC.completionHandler = { [weak self] in
+            // 탭바 컨트롤러로 전환
+            let tabBarController = TabBarController()
+            self?.window?.rootViewController = tabBarController
+            
+            // 딥링크 처리
+            self?.handleConnectionOptions(connectionOptions)
+        }
+        
+        window?.rootViewController = launchScreenVC
         window?.makeKeyAndVisible()
         
-        // 딥링크 처리 (만약 알림을 통해 앱이 실행된 경우)
-        handleConnectionOptions(connectionOptions)
     }
+    
     
     func sceneDidDisconnect(_ scene: UIScene) {
         // 리소스 정리 작업

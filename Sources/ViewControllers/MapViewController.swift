@@ -106,9 +106,6 @@ class MapViewController: UIViewController {
     
 }
 
-
-
-
 // 위치 관리자 델리게이트 추가
 extension MapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -116,8 +113,7 @@ extension MapViewController: CLLocationManagerDelegate {
         
     }
     
-    
-    
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:

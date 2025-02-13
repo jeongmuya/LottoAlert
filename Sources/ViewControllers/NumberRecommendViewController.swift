@@ -581,11 +581,11 @@ class NumberCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDat
             // isOrangeRow가 true일 때 카운트 증가
             if self.isOrangeRow {
                 NumberCell.orangeRowCount += 1
-                print("오렌지 행 카운트: \(NumberCell.orangeRowCount)") // 디버깅용
+//                print("오렌지 행 카운트: \(NumberCell.orangeRowCount)") // 디버깅용
                 
                 // 모든 행이 오렌지색일 때 (5줄)
                 if NumberCell.orangeRowCount == 5 {
-                    print("모든 행이 오렌지색으로 변경됨") // 디버깅용
+//                    print("모든 행이 오렌지색으로 변경됨") // 디버깅용
                     DispatchQueue.main.async { [weak self] in
                         self?.delegate?.didUpdateAllRowsToOrange()
                     }
