@@ -33,6 +33,16 @@ class TabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "number.circle.fill")
         )
         
+        
+        // 번호 추천 화면2
+        let recommendVC2 = NumberRecommendViewController2()
+        let recommendNav2 = UINavigationController(rootViewController: recommendVC2)
+        recommendNav2.tabBarItem = UITabBarItem(
+            title: "번호 추천2",
+            image: UIImage(systemName: "number.circle"),
+            selectedImage: UIImage(systemName: "number.circle.fill")
+        )
+        
 //        // 히스토리 화면
 //        let historyNav = UINavigationController(rootViewController: historyVC)
 //        historyNav.tabBarItem = UITabBarItem(
@@ -41,12 +51,12 @@ class TabBarController: UITabBarController {
 //            selectedImage: UIImage(systemName: "clock.fill")
 //        )
         
-        viewControllers = [mapNav, recommendNav]
+        viewControllers = [mapNav, recommendNav, recommendNav2]
     }
     
     private func setupTabBar() {
         tabBar.tintColor = .darkGray
-        tabBar.backgroundColor = .white
+        tabBar.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
         tabBar.isTranslucent = false
         
         // 쉐도우 추가

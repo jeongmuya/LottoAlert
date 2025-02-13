@@ -78,12 +78,22 @@ class NumberRecommendViewController: UIViewController {
     
     // 번호 받기 버튼
     private let getNumberButton: UIButton = {
-        let button = UIButton()
+        let button = UIButton(type: .system)
+        
         button.setTitle("황금 번호 받기", for: .normal)
         button.setTitleColor(.black, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 20, weight: .heavy)
-        button.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
+        
+        // 배경색 설정을 위한 extension 사용
+        let normalColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
+        let highlightedColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 0.7)
+        
+        button.setBackgroundColor(normalColor, for: .normal)
+        button.setBackgroundColor(highlightedColor, for: .highlighted)
+        
         button.layer.cornerRadius = 12
+        button.layer.masksToBounds = true
+        
         button.addTarget(self, action: #selector(getNumberButtonTapped), for: .touchUpInside)
         return button
     }()
@@ -585,5 +595,31 @@ class NumberItemCell: UICollectionViewCell {
         numberLabel.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
+    }
+}
+
+
+// 배경색 설정을 위한 Extension
+extension UIButton {
+    func setBackgroundColor(_ color: UIColor, for state: UIControl.State) {
+        let image = UIImage.pixel(ofColor: color)
+        self.setBackgroundImage(image, for: state)
+    }
+}
+
+// 1픽셀 이미지 생성을 위한 Extension
+extension UIImage {
+    static func pixel(ofColor color: UIColor) -> UIImage {
+        let pixel = CGRect(x: 0.0, y: 0.0, width: 1.0, height: 1.0)
+        
+        UIGraphicsBeginImageContext(pixel.size)
+        defer { UIGraphicsEndImageContext() }
+        
+        guard let context = UIGraphicsGetCurrentContext() else { return UIImage() }
+        
+        context.setFillColor(color.cgColor)
+        context.fill(pixel)
+        
+        return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
     }
 }
