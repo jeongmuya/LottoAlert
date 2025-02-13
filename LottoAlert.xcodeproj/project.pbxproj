@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F9BFB5842D3E281C00BF6564 /* NMapsMap in Frameworks */ = {isa = PBXBuildFile; productRef = F9BFB5832D3E281C00BF6564 /* NMapsMap */; };
 		F9BFB5872D3E28BA00BF6564 /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = F9BFB5862D3E28BA00BF6564 /* SnapKit */; };
 /* End PBXBuildFile section */
 
@@ -51,7 +50,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F9BFB5842D3E281C00BF6564 /* NMapsMap in Frameworks */,
 				F9BFB5872D3E28BA00BF6564 /* SnapKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -127,7 +125,6 @@
 			mainGroup = F9B2759B2D3ACEAC005C2F76;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */,
 				F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -360,14 +357,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/navermaps/SPM-NMapsMap";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.20.0;
-			};
-		};
 		F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit";
@@ -379,11 +368,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		F9BFB5832D3E281C00BF6564 /* NMapsMap */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F9BFB5822D3E281C00BF6564 /* XCRemoteSwiftPackageReference "SPM-NMapsMap" */;
-			productName = NMapsMap;
-		};
 		F9BFB5862D3E28BA00BF6564 /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = F9BFB5852D3E28BA00BF6564 /* XCRemoteSwiftPackageReference "SnapKit" */;

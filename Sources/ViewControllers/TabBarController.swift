@@ -45,8 +45,17 @@ class TabBarController: UITabBarController {
     }
     
     private func setupTabBar() {
-        tabBar.tintColor = .systemBlue
+        tabBar.tintColor = .darkGray
         tabBar.backgroundColor = .white
         tabBar.isTranslucent = false
+        
+        // 쉐도우 추가
+        tabBar.layer.shadowColor = UIColor.black.cgColor
+        tabBar.layer.shadowOffset = CGSize(width: 0, height: -1) // 음수값은 위쪽 방향
+        tabBar.layer.shadowRadius = 4
+        tabBar.layer.shadowOpacity = 0.3
+        
+        // 쉐도우가 잘 보이도록 클리핑 비활성화
+        tabBar.layer.masksToBounds = false
     }
 }

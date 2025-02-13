@@ -82,7 +82,7 @@ class NumberRecommendViewController: UIViewController {
         button.setTitle("황금 번호 받기", for: .normal)
         button.setTitleColor(.black, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 20, weight: .heavy)
-        button.backgroundColor = UIColor(red: 255/255, green: 204/255, blue: 0/255, alpha: 1.0)
+        button.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
         button.layer.cornerRadius = 12
         button.addTarget(self, action: #selector(getNumberButtonTapped), for: .touchUpInside)
         return button
@@ -350,7 +350,7 @@ class NumberRecommendViewController: UIViewController {
     private func startTimer() {
         stopTimer()
         
-        // DispatchSourceTimer 새엇ㅇ
+        // DispatchSourceTimer
         let timer = DispatchSource.makeTimerSource(queue: .main)
         timer.schedule(deadline: .now(), repeating: .seconds(1))
         
@@ -542,10 +542,10 @@ class NumberItemCell: UICollectionViewCell {
     func configure(with number: Int, isOrange: Bool) {
         numberLabel.text = String(format: "%02d", number)
         if isOrange {
-            contentView.backgroundColor = UIColor(red: 255/255, green: 204/255, blue: 0/255, alpha: 1.0) // 배경색을 오렌지색으로 설정
+            contentView.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) 
             numberLabel.textColor = .black
             numberLabel.font = .h5 // pretendardExtraBold 20
-            contentView.layer.borderColor = UIColor(red: 255/255, green: 204/255, blue: 0/255, alpha: 1.0).cgColor
+            contentView.layer.borderColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0).cgColor
         } else {
             contentView.backgroundColor = .clear
             numberLabel.textColor = .black

@@ -2,8 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleIdentifier</key>
-	<string></string>
+	<key>CFBundleDisplayName</key>
+	<string>로또알람</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>백그라운드 위치 추적을 위해 위치 정보가 필요합니다.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>현재 위치를 지도에 표시하기 위해 위치 정보가 필요합니다.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>로또 판매점 근처 알림을 받기 위해 필요합니다.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Light.otf</string>
@@ -18,12 +24,6 @@
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict/>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>&quot;현재 위치의 로또 판매점을 찾기 위해 위치 권한이 필요합니다.&quot;</string>
-	<key>NMFClientId</key>
-	<string>kct071em8v</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>&quot;현재 위치의 로또 판매점을 찾기 위해 위치 권한이 필요합니다.&quot;</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -43,15 +43,9 @@
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
-        <string>processing</string>
+		<string>processing</string>
 		<string>location</string>
+		<string>remote-notification</string>
 	</array>
-	<key>NaverAPIKeys</key>
-	<dict>
-		<key>ClientID</key>
-		<string>kct071em8v</string>
-		<key>ClientSecret</key>
-		<string>C13BCvX097ln0ivhycwprgMAZ9awGEYMDJR14vTE</string>
-	</dict>
 </dict>
 </plist>
