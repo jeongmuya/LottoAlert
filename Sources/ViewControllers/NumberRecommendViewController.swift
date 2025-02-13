@@ -80,21 +80,72 @@ class NumberRecommendViewController: UIViewController {
     private let getNumberButton: UIButton = {
         let button = UIButton(type: .system)
         
+        
+        // 기본 설정
         button.setTitle("황금 번호 받기", for: .normal)
         button.setTitleColor(.black, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 20, weight: .heavy)
         
-        // 배경색 설정을 위한 extension 사용
+        // 상태별 배경색 설정
         let normalColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
-        let highlightedColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 0.7)
+        let highlightedColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 0.8)
+        let pressedColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 0.6)
         
-        button.setBackgroundColor(normalColor, for: .normal)
-        button.setBackgroundColor(highlightedColor, for: .highlighted)
+//        button.setBackgroundColor(normalColor, for: .normal)
+//        button.setBackgroundColor(highlightedColor, for: .highlighted)
         
+        // 모서리 둥글게
         button.layer.cornerRadius = 12
-        button.layer.masksToBounds = true
         
+        // 기본 배경색 제거 (그라데이션이 보이도록)
+        button.backgroundColor = .clear
+        
+        // 외부 그림자
+          button.layer.shadowColor = UIColor.black.cgColor
+          button.layer.shadowOffset = CGSize(width: 0, height: 2)
+          button.layer.shadowRadius = 4
+          button.layer.shadowOpacity = 0.2
+          
+          // 테두리
+          button.layer.borderWidth = 0.5
+          button.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+          
+          // 그라데이션 레이어
+          let gradientLayer = CAGradientLayer()
+          gradientLayer.name = "buttonGradient"
+          gradientLayer.cornerRadius = 12
+          gradientLayer.type = .radial
+          
+          // 색상 설정 - 입체감을 위한 색상 조정
+          let baseColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
+          let orangeColor = UIColor(red: 245/255, green: 184/255, blue: 0/255, alpha: 1.0)
+          
+          let lightColor = baseColor.withAlphaComponent(1.0)
+          let midColor = baseColor.withAlphaComponent(0.9)
+          let darkColor = orangeColor.withAlphaComponent(0.8)
+          
+          gradientLayer.colors = [
+              lightColor.cgColor,
+              midColor.cgColor,
+              darkColor.cgColor
+          ]
+          
+          // 그라데이션 위치 - 더 자연스러운 분포
+          gradientLayer.locations = [0.2, 0.5, 1.0]
+          
+          gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
+          gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
+          
+          button.layer.insertSublayer(gradientLayer, at: 0)
+        
+ 
+//        button.clipsToBounds = true
+        
+        // 터치 이벤트 추가
         button.addTarget(self, action: #selector(getNumberButtonTapped), for: .touchUpInside)
+        button.addTarget(self, action: #selector(touchDown), for: .touchDown)
+        button.addTarget(self, action: #selector(touchUp), for: [.touchUpInside, .touchUpOutside])
+        
         return button
     }()
     
@@ -136,6 +187,28 @@ class NumberRecommendViewController: UIViewController {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
     }
+    // 터치 업 효과
+    @objc private func touchUp() {
+        UIView.animate(withDuration: 0.1) {
+            // 버튼을 원래 크기와 위치로
+            self.getNumberButton.transform = .identity
+            // 그림자 효과 복원
+            self.getNumberButton.layer.shadowOffset = CGSize(width: 0, height: 4)
+            self.getNumberButton.layer.shadowRadius = 5
+        }
+    }
+    
+    // 터치 다운 효과
+    @objc private func touchDown() {
+        UIView.animate(withDuration: 0.1) {
+            // 버튼을 약간 작게 만들고 아래로 이동
+            self.getNumberButton.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+            // 그림자 효과 줄이기
+            self.getNumberButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+            self.getNumberButton.layer.shadowRadius = 3
+        }
+    }
+    
     
     // 로또 번호 생성 메서드
     private func generateLottoNumbers() -> [Int] {
@@ -223,6 +296,17 @@ class NumberRecommendViewController: UIViewController {
         updateDateLabels()
         fetchLatestLottoPrize() // 당첨금액 api로 가져오기
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        // 그라데이션 레이어 프레임 업데이트
+        if let gradientLayer = getNumberButton.layer.sublayers?.first(where: { $0.name == "buttonGradient" }) as? CAGradientLayer {
+            gradientLayer.frame = getNumberButton.bounds
+        }
+    }
+
+
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
@@ -552,17 +636,65 @@ class NumberItemCell: UICollectionViewCell {
     func configure(with number: Int, isOrange: Bool) {
         numberLabel.text = String(format: "%02d", number)
         if isOrange {
-            contentView.backgroundColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) 
+            // 기존 배경색 제거
+            contentView.backgroundColor = .clear
+            
+            // 그라데이션 레이어 생성
+            let gradientLayer = CAGradientLayer()
+            gradientLayer.name = "cellGradient"
+            gradientLayer.frame = contentView.bounds
+            gradientLayer.cornerRadius = bounds.width / 2  // 원형 유지
+            gradientLayer.type = .radial
+            
+            // 색상 설정
+            let baseColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
+            let orangeColor = UIColor(red: 245/255, green: 184/255, blue: 0/255, alpha: 1.0)
+            
+            let lightColor = baseColor.withAlphaComponent(1.0)
+            let midColor = baseColor.withAlphaComponent(0.9)
+            let darkColor = orangeColor.withAlphaComponent(0.8)
+            
+            gradientLayer.colors = [
+                lightColor.cgColor,
+                midColor.cgColor,
+                darkColor.cgColor
+            ]
+            
+            gradientLayer.locations = [0.2, 0.5, 1.0]
+            gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.5)
+            gradientLayer.endPoint = CGPoint(x: 1.0, y: 1.0)
+            
+            // 기존 그라데이션 레이어 제거
+            contentView.layer.sublayers?.removeAll { $0.name == "cellGradient" }
+            contentView.layer.insertSublayer(gradientLayer, at: 0)
+            
+            // 그림자 효과
+            contentView.layer.shadowColor = UIColor.black.cgColor
+            contentView.layer.shadowOffset = CGSize(width: 0, height: 2)
+            contentView.layer.shadowRadius = 3
+            contentView.layer.shadowOpacity = 0.2
+            
+            // 테두리
+            contentView.layer.borderWidth = 0.5
+            contentView.layer.borderColor = UIColor.white.withAlphaComponent(0.3).cgColor
+            
             numberLabel.textColor = .black
-            numberLabel.font = .h5 // pretendardExtraBold 20
-            contentView.layer.borderColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0).cgColor
+            numberLabel.font = .h5
         } else {
+            // 기존 스타일 유지
             contentView.backgroundColor = .clear
             numberLabel.textColor = .black
-            numberLabel.font = .h6 // pretendardSemiBold 16
+            numberLabel.font = .h6
             contentView.layer.borderColor = UIColor.lightGray.cgColor
+            
+            // 그림자 제거
+            contentView.layer.shadowOpacity = 0
+            
+            // 그라데이션 레이어 제거
+            contentView.layer.sublayers?.removeAll { $0.name == "cellGradient" }
         }
     }
+
     
     private let numberLabel: UILabel = {
         let label = UILabel()
@@ -587,6 +719,8 @@ class NumberItemCell: UICollectionViewCell {
         contentView.layer.borderColor = UIColor.lightGray.cgColor // 테두리 색상
         contentView.backgroundColor = .clear
         contentView.clipsToBounds = true
+        // 그림자가 잘리지 않도록 설정
+        contentView.layer.masksToBounds = false
         
         contentView.addSubview(numberLabel)
         // 숫자 라벨 색상 설정
@@ -600,12 +734,12 @@ class NumberItemCell: UICollectionViewCell {
 
 
 // 배경색 설정을 위한 Extension
-extension UIButton {
-    func setBackgroundColor(_ color: UIColor, for state: UIControl.State) {
-        let image = UIImage.pixel(ofColor: color)
-        self.setBackgroundImage(image, for: state)
-    }
-}
+//extension UIButton {
+//    func setBackgroundColor(_ color: UIColor, for state: UIControl.State) {
+//        let image = UIImage.pixel(ofColor: color)
+//        self.setBackgroundImage(image, for: state)
+//    }
+//}
 
 // 1픽셀 이미지 생성을 위한 Extension
 extension UIImage {
