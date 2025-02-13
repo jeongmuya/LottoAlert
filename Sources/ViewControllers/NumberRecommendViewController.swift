@@ -6,7 +6,7 @@ import Lottie
 class NumberRecommendViewController: UIViewController {
     
     // MARK: - Properties
-    
+
     // Lottie animation 프로퍼티
     private let fireworksAnimationView: FireworksAnimationView = {
         let animationView = FireworksAnimationView(frame: UIScreen.main.bounds)  // 전체 화면 크기로 초기화
@@ -180,6 +180,10 @@ class NumberRecommendViewController: UIViewController {
     
     // MARK: - Actions
     @objc private func getNumberButtonTapped() {
+        
+        // 오렌지 행 카운트 리셋
+              NumberCell.orangeRowCount = 0
+        
         // 5세트의 로또 번호 생성
         generatedNumbers = (0..<5).map { _ in
             generateLottoNumbers()
@@ -194,12 +198,6 @@ class NumberRecommendViewController: UIViewController {
             isNumbersGenerated = true
         }
         
-        // 파이어워크 애니메이션 실행
-        fireworksAnimationView.playAnimation { [weak self] completed in
-            if completed {
-                // 애니메이션이 완료된 후 추가 작업이 필요한 경우 여기에 구현
-            }
-        }
         
         // 버튼 눌렀을 때 진동 효과
         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -543,9 +541,13 @@ extension NumberRecommendViewController: UITableViewDataSource, UITableViewDeleg
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "NumberCell",
-                                                       for: indexPath) as? NumberCell else {
+                                                      for: indexPath) as? NumberCell else {
             return UITableViewCell()
         }
+        
+        // delegate 설정
+            cell.delegate = self
+        
         // 생성된 번호가 있으면 해당 번호를 표시, 없으면 빈 배열 표시
         if !generatedNumbers.isEmpty {
             cell.configure(with: generatedNumbers[indexPath.row])
@@ -556,17 +558,56 @@ extension NumberRecommendViewController: UITableViewDataSource, UITableViewDeleg
     }
 }
 
+protocol NumberCellDelegate: AnyObject {
+    func didUpdateAllRowsToOrange()
+}
+
 // MARK: - NumberCell
 class NumberCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDataSource {
+    
+    // delegate 프로퍼티 추가
+    weak var delegate: NumberCellDelegate?
+    static var orangeRowCount = 0
     
     private var isOrangeRow: Bool = false
     
     func configure(with numbers: [Int]) {
         self.numbers = numbers
-        // 70% 확률로 오렌지색 행으로 설정
-        self.isOrangeRow = Double.random(in: 0...1) < 0.7
+        
+        if !numbers.isEmpty {
+            // 70% 확률로 오렌지색 행으로 설정
+            self.isOrangeRow = Double.random(in: 0...1) < 0.7
+            
+            // isOrangeRow가 true일 때 카운트 증가
+            if self.isOrangeRow {
+                NumberCell.orangeRowCount += 1
+                print("오렌지 행 카운트: \(NumberCell.orangeRowCount)") // 디버깅용
+                
+                // 모든 행이 오렌지색일 때 (5줄)
+                if NumberCell.orangeRowCount == 5 {
+                    print("모든 행이 오렌지색으로 변경됨") // 디버깅용
+                    DispatchQueue.main.async { [weak self] in
+                        self?.delegate?.didUpdateAllRowsToOrange()
+                    }
+                    // 카운트 리셋을 delegate 메서드 호출 후로 이동
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        NumberCell.orangeRowCount = 0
+                    }
+                }
+            }
+        }
+        
         numberCollectionView.reloadData()
     }
+    
+    // Cell이 재사용될 때 호출되는 메서드
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        if isOrangeRow {
+            isOrangeRow = false
+        }
+    }
+
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return numbers.isEmpty ? 6 : numbers.count
@@ -773,3 +814,12 @@ extension UIImage {
         return UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
     }
 }
+
+extension NumberRecommendViewController: NumberCellDelegate {
+    func didUpdateAllRowsToOrange() {
+        
+        fireworksAnimationView.playAnimation()
+
+    }
+}
+

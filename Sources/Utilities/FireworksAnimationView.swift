@@ -36,7 +36,7 @@ class FireworksAnimationView: UIView {
             animationView.frame = UIScreen.main.bounds  // 전체 화면 크기로 설정
             animationView.contentMode = .scaleAspectFill  // 화면을 꽉 채우도록 변경
             animationView.loopMode = .playOnce
-            animationView.isHidden = true
+//            animationView.isHidden = true
         
         // 자동 크기 조정
         animationView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -53,9 +53,12 @@ class FireworksAnimationView: UIView {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // 애니메이션 표시 및 실행
+        animationView.stop()  // 추가: 현재 실행 중인 애니메이션 중단
         animationView.isHidden = false
-        animationView.play { [weak self] completed in
+        
+        
+        animationView.play(fromProgress: 0, toProgress: 1) { [weak self] completed in
+            
             if completed {
                 self?.animationView?.isHidden = true
             }
