@@ -27,7 +27,7 @@ class LaunchScreenViewController: UIViewController {
     // 하단 라벨
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "아무것도 안하면 아무일도 생기지 않는다"
+        label.text = "Jeong Mu"
         label.textAlignment = .center
         label.font = .systemFont(ofSize: 16, weight: .medium)
         label.textColor = .gray

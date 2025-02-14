@@ -35,12 +35,12 @@ class TabBarController: UITabBarController {
         
         
         // 번호 추천 화면2
-        let recommendVC2 = NumberRecommendViewController2()
-        let recommendNav2 = UINavigationController(rootViewController: recommendVC2)
-        recommendNav2.tabBarItem = UITabBarItem(
-            title: "번호 추천2",
-            image: UIImage(systemName: "number.circle"),
-            selectedImage: UIImage(systemName: "number.circle.fill")
+        let qrScannerVC = QRScannerViewController()
+        let qrScannerNav = UINavigationController(rootViewController: qrScannerVC)
+        qrScannerVC.tabBarItem = UITabBarItem(
+            title: "QR스캐너",
+            image: UIImage(systemName: "qrcode.viewfinder"),
+            selectedImage: UIImage(systemName: "qrcode.viewfinder")
         )
         
 //        // 히스토리 화면
@@ -51,7 +51,7 @@ class TabBarController: UITabBarController {
 //            selectedImage: UIImage(systemName: "clock.fill")
 //        )
         
-        viewControllers = [mapNav, recommendNav, recommendNav2]
+        viewControllers = [mapNav, recommendNav, qrScannerVC]
     }
     
     private func setupTabBar() {

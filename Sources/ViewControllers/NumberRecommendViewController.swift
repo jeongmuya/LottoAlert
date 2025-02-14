@@ -80,7 +80,7 @@ class NumberRecommendViewController: UIViewController {
     // 행운 메시지 라벨
     private let luckyMessageLabel: UILabel = {
         let label = UILabel()
-        label.text = "당신이 이번주 행운의 주인공입니다."
+        label.text = "로또 당첨이 되려면 무엇보다 일단 구매를 해야한다."
         label.textColor = .black
         label.font = .boldSystemFont(ofSize: 16)
         return label
@@ -92,7 +92,7 @@ class NumberRecommendViewController: UIViewController {
         
         
         // 기본 설정
-        button.setTitle("황금 번호 받기", for: .normal)
+        button.setTitle("당첨 번호 받기", for: .normal)
         button.setTitleColor(.black, for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 20, weight: .heavy)
         
@@ -194,7 +194,7 @@ class NumberRecommendViewController: UIViewController {
         
         // 버튼 텍스트 변경
         if  !isNumbersGenerated {
-            getNumberButton.setTitle("황금 번호 다시 받기", for: .normal)
+            getNumberButton.setTitle("당첨 번호 다시 받기", for: .normal)
             isNumbersGenerated = true
         }
         

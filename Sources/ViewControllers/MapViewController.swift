@@ -20,7 +20,7 @@ class MapViewController: UIViewController {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "location.fill"), for: .normal)
         button.backgroundColor = .white
-        button.tintColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) 
+        button.tintColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0)
         button.layer.cornerRadius = 25
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOpacity = 0.3
@@ -39,6 +39,7 @@ class MapViewController: UIViewController {
         setupMapView()
         addAnnotations()
         setupMyLocationButton()
+        mapView.delegate = self
         locationManager.startUpdatingLocation()
         // 알림 권한 요청
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
@@ -50,6 +51,8 @@ class MapViewController: UIViewController {
         }
         locationManager.requestAlwaysAuthorization()
         locationManager.allowsBackgroundLocationUpdates = true
+        
+        
         
     }
     
@@ -92,6 +95,47 @@ class MapViewController: UIViewController {
         }
     }
     
+    
+    
+    // 경로 찾기 함수 추가
+    private func findRoute(to destination: CLLocationCoordinate2D) {
+        guard let userLocation = locationManager.location?.coordinate else {
+            print("사용자 위치를 찾을 수 없습니다.")
+            return
+        }
+        
+        // 기존 경로가 있다면 제거
+        mapView.overlays.forEach { mapView.removeOverlay($0) }
+        
+        let sourcePlacemark = MKPlacemark(coordinate: userLocation)
+        let destinationPlacemark = MKPlacemark(coordinate: destination)
+        
+        let directionRequest = MKDirections.Request()
+        directionRequest.source = MKMapItem(placemark: sourcePlacemark)
+        directionRequest.destination = MKMapItem(placemark: destinationPlacemark)
+        directionRequest.transportType = .automobile
+        
+        let directions = MKDirections(request: directionRequest)
+        directions.calculate { [weak self] (response, error) in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("경로 계산 오류: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let response = response else { return }
+            
+            let route = response.routes[0]
+            self.mapView.addOverlay(route.polyline, level: .aboveRoads)
+            
+            // 경로가 모두 보이도록 지도 영역 조정
+            let rect = route.polyline.boundingMapRect
+            self.mapView.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 40, left: 40, bottom: 40, right: 40), animated: true)
+        }
+    }
+
+    
     // 버튼 탭 액션
     @objc private func myLocationButtonTapped() {
         if let userLocation = locationManager.location?.coordinate {
@@ -105,6 +149,8 @@ class MapViewController: UIViewController {
     }
     
 }
+  
+
 
 // 위치 관리자 델리게이트 추가
 extension MapViewController: CLLocationManagerDelegate {
@@ -128,3 +174,30 @@ extension MapViewController: CLLocationManagerDelegate {
         }
     }
 }
+
+
+// MKMapViewDelegate 확장 추가
+extension MapViewController: MKMapViewDelegate {
+    // 경로 스타일 지정
+    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+        if let polyline = overlay as? MKPolyline {
+            let renderer = MKPolylineRenderer(polyline: polyline)
+            renderer.strokeColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) // 로또 앱 테마 색상으로 설정
+            renderer.lineWidth = 5
+            return renderer
+        }
+        return MKOverlayRenderer(overlay: overlay)
+    }
+    
+    // 어노테이션 탭 처리
+    func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
+        // 사용자 위치 마커가 아닌 경우에만 경로 표시
+        if annotation is MKUserLocation {
+            return
+        }
+        
+        // 선택된 마커까지의 경로 찾기
+        findRoute(to: annotation.coordinate)
+    }
+}
+
