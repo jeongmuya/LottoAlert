@@ -10,7 +10,7 @@ import UserNotifications
 import CoreLocation
 import UIKit
 
-class AlertManager: NSObject, CLLocationManagerDelegate {
+class AlertManager: NSObject, CLLocationManagerDelegate, UNUserNotificationCenterDelegate {
     static let shared = AlertManager()
     private let locationManager = CLLocationManager()
     private let notificationDistance: Double = 300 // 300미터 반경
@@ -20,11 +20,31 @@ class AlertManager: NSObject, CLLocationManagerDelegate {
     private override init() {
         super.init()
         setupLocationManager()
-        loadStoreData() // 초기화할 때 데이터 로드
+        setupNotifications()
+        loadStoreData()
+    }
+    
+    // MARK: - Setup Methods
+    
+    private func setupNotifications() {
+        UNUserNotificationCenter.current().delegate = self
+        requestNotificationPermission()
+    }
+    
+    private func setupLocationManager() {
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager.distanceFilter = 100
+        locationManager.allowsBackgroundLocationUpdates = true
+        locationManager.pausesLocationUpdatesAutomatically = false
+        locationManager.showsBackgroundLocationIndicator = true
+        
+        // 백그라운드 위치 권한 요청
+        locationManager.requestAlwaysAuthorization()
+        locationManager.startMonitoringSignificantLocationChanges()
     }
     
     private func loadStoreData() {
-        // JSON 파일에서 데이터 로드
         if let path = Bundle.main.path(forResource: "LottoStores", ofType: "json") {
             do {
                 let data = try Data(contentsOf: URL(fileURLWithPath: path))
@@ -37,97 +57,83 @@ class AlertManager: NSObject, CLLocationManagerDelegate {
         }
     }
     
-    private func setupLocationManager() {
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.distanceFilter = 100 // 100미터 이상 움직였을 때만 업데이트
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-        
-        // 백그라운드 위치 업데이트 설정 추가
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
-        
-        // 권한 요청을 'Always'로 변경
-        locationManager.requestAlwaysAuthorization()
-        
-        // 위치 업데이트 시작 (앱 시작시 한 번만 호출되면 됨)
-        locationManager.startUpdatingLocation()
+    // MARK: - Location Manager Delegate Methods
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        switch manager.authorizationStatus {
+        case .authorizedAlways:
+            print("위치 권한 항상 허용")
+            locationManager.startMonitoringSignificantLocationChanges()
+            locationManager.startUpdatingLocation()
+        case .authorizedWhenInUse:
+            print("위치 권한 사용 중일 때만 허용")
+            requestAlwaysAuthorization()
+        default:
+            print("위치 권한 없음")
+            showLocationPermissionAlert()
+        }
     }
     
-    // 위치가 업데이트될 때마다 호출되는 delegate 메서드
-     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-         guard let currentLocation = locations.last else { return }
-         
-         // 디버깅용 프린트문 추가
-         print("📍 위치 업데이트: lat: \(currentLocation.coordinate.latitude), lon: \(currentLocation.coordinate.longitude), 시간: \(Date())")
-         
-         // 현재 위치에서 근처 판매점 확인
-         let nearbyStores = stores.filter { store in
-             let storeLocation = CLLocation(
-                 latitude: store.latitude,
-                 longitude: store.longitude
-             )
-             return currentLocation.distance(from: storeLocation) <= notificationDistance
-         }
-         
-         // 새로운 근처 판매점에 대해서만 알림 전송
-         for store in nearbyStores {
-             if !lastNotifiedStores.contains(store.name) {
-                 sendNotification(for: store)
-                 lastNotifiedStores.insert(store.name)
-             }
-         }
-         
-         // 범위를 벗어난 판매점은 다시 알림 가능하도록 설정
-         lastNotifiedStores = Set(nearbyStores.map { $0.name })
-     }
-     
-     private func sendNotification(for store: LottoStore) {
-         let content = UNMutableNotificationContent()
-         content.title = "근처에 로또 판매점이 있습니다!"
-         content.body = "판매점: \(store.name)"
-         content.sound = .default
-         
-         // 즉시 알림 전송
-         let request = UNNotificationRequest(
-             identifier: "storeNotification_\(store.name)",
-             content: content,
-             trigger: nil // 즉시 알림
-         )
-         
-         UNUserNotificationCenter.current().add(request) { error in
-             if let error = error {
-                 print("알림 설정 실패: \(error.localizedDescription)")
-             } else {
-                 print("근처 판매점 알림 전송 완료: \(store.name)")
-             }
-         }
-     }
- 
-    
-    private func checkNearbyStores(completion: @escaping (LottoStore?) -> Void) {
-        // 현재 위치 가져오기
-        guard let currentLocation = locationManager.location else {
-            completion(nil)
-            return
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let currentLocation = locations.last else { return }
+        
+        // 백그라운드 상태에서는 배터리 절약을 위해 정확도 조정
+        if UIApplication.shared.applicationState == .background {
+            locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+        } else {
+            locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         }
         
-        // 가장 가까운 판매점 찾기
-        let nearbyStore = stores.first { store in
+        print("📍 위치 업데이트: lat: \(currentLocation.coordinate.latitude), lon: \(currentLocation.coordinate.longitude), 시간: \(Date())")
+        
+        checkAndNotifyNearbyStores(at: currentLocation)
+    }
+    
+    // MARK: - Notification Methods
+    
+    private func checkAndNotifyNearbyStores(at location: CLLocation) {
+        let nearbyStores = stores.filter { store in
             let storeLocation = CLLocation(
                 latitude: store.latitude,
                 longitude: store.longitude
             )
-            let distance = currentLocation.distance(from: storeLocation)
-            return distance <= notificationDistance
+            return location.distance(from: storeLocation) <= notificationDistance
         }
         
-        completion(nearbyStore)
+        for store in nearbyStores {
+            if !lastNotifiedStores.contains(store.name) {
+                sendNotification(for: store)
+                lastNotifiedStores.insert(store.name)
+            }
+        }
+        
+        lastNotifiedStores = Set(nearbyStores.map { $0.name })
     }
     
-    // 알림 권한 요청
+    private func sendNotification(for store: LottoStore) {
+        let content = UNMutableNotificationContent()
+        content.title = "근처에 로또 판매점이 있습니다!"
+        content.body = "판매점: \(store.name)"
+        content.sound = .default
+        content.userInfo = ["storeName": store.name]
+        
+        let request = UNNotificationRequest(
+            identifier: "storeNotification_\(store.name)",
+            content: content,
+            trigger: nil
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("알림 설정 실패: \(error.localizedDescription)")
+            } else {
+                print("근처 판매점 알림 전송 완료: \(store.name)")
+            }
+        }
+    }
+    
+    // MARK: - Permission Handling
+    
     func requestNotificationPermission() {
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .sound, .badge]
@@ -136,7 +142,78 @@ class AlertManager: NSObject, CLLocationManagerDelegate {
                 print("알림 권한이 허용되었습니다")
             } else {
                 print("알림 권한이 거부되었습니다")
+                self.showNotificationPermissionAlert()
             }
         }
+    }
+    
+    private func requestAlwaysAuthorization() {
+        let alert = UIAlertController(
+            title: "백그라운드 위치 권한 필요",
+            message: "로또 판매점 알림을 받으시려면 '항상 허용' 권한이 필요합니다.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func showLocationPermissionAlert() {
+        let alert = UIAlertController(
+            title: "위치 권한 필요",
+            message: "로또 판매점 알림을 받으시려면 위치 권한이 필요합니다.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+    
+    private func showNotificationPermissionAlert() {
+        let alert = UIAlertController(
+            title: "알림 권한 필요",
+            message: "로또 판매점 알림을 받으시려면 알림 권한이 필요합니다.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel))
+        
+        DispatchQueue.main.async {
+            UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+    
+    // MARK: - UNUserNotificationCenterDelegate
+    
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound, .badge])
     }
 }
