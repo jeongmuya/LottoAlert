@@ -14,28 +14,27 @@
         func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
             guard let windowScene = (scene as? UIWindowScene) else { return }
             
-            // 윈도우 설정
             window = UIWindow(windowScene: windowScene)
             
-            // 런치스크린 뷰컨트롤러 설정
+            // 런치스크린 전환 애니메이션 추가
             let launchScreenVC = LaunchScreenViewController()
-            
-            // 애니메이션 완료 후 실행될 코드
             launchScreenVC.completionHandler = { [weak self] in
-                // 탭바 컨트롤러로 전환
+                // 크로스 디졸브 애니메이션 추가
                 let tabBarController = TabBarController()
-                self?.window?.rootViewController = tabBarController
-                
-                // 딥링크 처리
-                self?.handleConnectionOptions(connectionOptions)
+                UIView.transition(with: self?.window ?? UIWindow(),
+                                  duration: 0.3,
+                                  options: .transitionCrossDissolve) {
+                    self?.window?.rootViewController = tabBarController
+                } completion: { _ in
+                    // : 딥링크 처리 위치 이동
+                    self?.handleConnectionOptions(connectionOptions)
+                }
             }
             
             window?.rootViewController = launchScreenVC
             window?.makeKeyAndVisible()
             
         }
-        
-        
         func sceneDidDisconnect(_ scene: UIScene) {
             // 리소스 정리 작업
             saveApplicationState()
@@ -59,11 +58,23 @@
             // refreshData()
         }
         
+        // MARK: - 수정 필요 4: 백그라운드 작업 스케줄러 설정 추가
         func sceneDidEnterBackground(_ scene: UIScene) {
-            // 백그라운드 진입 시 필요한 작업 수행
             saveApplicationState()
-            
+            scheduleAppRefresh()
+            scheduleLocationUpdates()
         }
+        
+        // MARK: - 수정 필요 5: 백그라운드 작업 스케줄러 메서드 추가
+        
+        private func scheduleAppRefresh() {
+            // 백그라운드 새로고침 작업 스케줄링
+        }
+        
+        private func scheduleLocationUpdates() {
+            // 백그라운드 위치 업데이트 작업 스케줄링
+        }
+    
         
         // MARK: - Helper Methods
         

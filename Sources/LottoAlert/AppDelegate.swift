@@ -17,6 +17,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     -> Bool {
         // 알림 델리게이트 설정
         UNUserNotificationCenter.current().delegate = self
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    if granted {
+                        print("알림 권한 승인됨")
+                    }
+                }
+        
         
         // 백그라운드 작업 설정
            application.registerForRemoteNotifications()
