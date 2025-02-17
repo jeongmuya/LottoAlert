@@ -29,8 +29,6 @@ class MapViewController: UIViewController {
         return button
     }()
     
-    
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         overrideUserInterfaceStyle = .light
@@ -72,6 +70,7 @@ class MapViewController: UIViewController {
             make.edges.equalToSuperview()
         }
     }
+ 
     
     
     private func setupLocationManager() {
@@ -113,7 +112,7 @@ class MapViewController: UIViewController {
         let directionRequest = MKDirections.Request()
         directionRequest.source = MKMapItem(placemark: sourcePlacemark)
         directionRequest.destination = MKMapItem(placemark: destinationPlacemark)
-        directionRequest.transportType = .automobile
+        directionRequest.transportType = .walking
         
         let directions = MKDirections(request: directionRequest)
         directions.calculate { [weak self] (response, error) in
@@ -129,11 +128,9 @@ class MapViewController: UIViewController {
             let route = response.routes[0]
             self.mapView.addOverlay(route.polyline, level: .aboveRoads)
             
-            // 경로가 모두 보이도록 지도 영역 조정
-            let rect = route.polyline.boundingMapRect
-            self.mapView.setVisibleMapRect(rect, edgePadding: UIEdgeInsets(top: 40, left: 40, bottom: 40, right: 40), animated: true)
         }
     }
+
 
     
     // 버튼 탭 액션
@@ -176,28 +173,57 @@ extension MapViewController: CLLocationManagerDelegate {
 }
 
 
-// MKMapViewDelegate 확장 추가
 extension MapViewController: MKMapViewDelegate {
     // 경로 스타일 지정
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
         if let polyline = overlay as? MKPolyline {
             let renderer = MKPolylineRenderer(polyline: polyline)
-            renderer.strokeColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) // 로또 앱 테마 색상으로 설정
+            renderer.strokeColor = .systemBlue
             renderer.lineWidth = 5
             return renderer
         }
         return MKOverlayRenderer(overlay: overlay)
     }
     
+    // 어노테이션 뷰 커스터마이징
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        // 사용자 위치 어노테이션은 제외
+        guard !(annotation is MKUserLocation) else {
+            return nil
+        }
+        
+        let identifier = "StoreMarker"
+        
+        var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
+        
+        if annotationView == nil {
+            annotationView = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+            annotationView?.canShowCallout = true
+            
+//            // 말풍선에 상세정보 버튼 추가
+//            let button = UIButton(type: .detailDisclosure)
+//            annotationView?.rightCalloutAccessoryView = button
+//        } else {
+//            annotationView?.annotation = annotation
+        }
+        
+        // 마커 스타일 설정
+        annotationView?.markerTintColor = UIColor(red: 245/255, green: 220/255, blue: 37/255, alpha: 1.0) // 로또 앱 테마 색상
+        annotationView?.glyphImage = UIImage(systemName: "dollarsign.circle") // 로또와 관련된 티켓 아이콘
+        annotationView?.markerTintColor = UIColor(red: 255/255, green: 232/255, blue: 18/255, alpha: 1.0)
+        
+        return annotationView
+    }
+    
     // 어노테이션 탭 처리
     func mapView(_ mapView: MKMapView, didSelect annotation: MKAnnotation) {
-        // 사용자 위치 마커가 아닌 경우에만 경로 표시
         if annotation is MKUserLocation {
             return
         }
         
-        // 선택된 마커까지의 경로 찾기
         findRoute(to: annotation.coordinate)
     }
 }
+
+
 

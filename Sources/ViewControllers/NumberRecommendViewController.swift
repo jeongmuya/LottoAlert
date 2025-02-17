@@ -367,7 +367,7 @@ class NumberRecommendViewController: UIViewController {
         
         // 메달 이미지 제약조건
         medalImageView.snp.makeConstraints { make in
-            make.leading.top.equalToSuperview().offset(16)
+            make.leading.top.equalToSuperview().offset(14)
             make.centerY.equalToSuperview()
             // 메달 크기를 컨테이너 높이에 비례하게 설정
             make.height.equalTo(containerView.snp.height).multipliedBy(0.8)
@@ -377,7 +377,7 @@ class NumberRecommendViewController: UIViewController {
         // 주차 라벨 제약조건
         weekLabel.snp.makeConstraints { make in
             make.top.equalTo(medalImageView).offset(4)
-            make.leading.equalTo(medalImageView.snp.trailing).offset(12)
+            make.leading.equalTo(medalImageView.snp.trailing).offset(10)
             make.trailing.lessThanOrEqualToSuperview().offset(-16)
         }
         
@@ -575,8 +575,8 @@ class NumberCell: UITableViewCell, UICollectionViewDelegate, UICollectionViewDat
         self.numbers = numbers
         
         if !numbers.isEmpty {
-            // 70% 확률로 오렌지색 행으로 설정
-            self.isOrangeRow = Double.random(in: 0...1) < 0.7
+            // 60% 확률로 오렌지색 행으로 설정
+            self.isOrangeRow = Double.random(in: 0...1) < 0.6
             
             // isOrangeRow가 true일 때 카운트 증가
             if self.isOrangeRow {

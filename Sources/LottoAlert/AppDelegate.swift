@@ -15,16 +15,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOption: [UIApplication.LaunchOptionsKey: Any]?)
     -> Bool {
-        
+        // 알림 델리게이트 설정
         UNUserNotificationCenter.current().delegate = self
         
-        let authrizationOption = UNAuthorizationOptions(arrayLiteral: [.alert, .badge, .sound])
-        userNotificationCenter.requestAuthorization(options: authrizationOption){ _, error in
-            if let error = error{
-                print("ERROR:notification authrization request \(error.localizedDescription)")
-                
-            }
-        }
+        // 백그라운드 작업 설정
+           application.registerForRemoteNotifications()
+        
         return true
     }
     
@@ -46,14 +42,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
-extension AppDelegate: UNUserNotificationCenterDelegate{
-    
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    // 앱이 포그라운드 상태일 때 알림 받기
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification:
                                 UNNotification, withCompletionHandler completionHandler: @escaping
                                 (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .list, .badge, .sound])
     }
     
+    // 알림을 탭했을 때 처리
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response:
                                 UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         completionHandler()

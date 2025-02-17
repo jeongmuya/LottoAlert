@@ -62,6 +62,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidEnterBackground(_ scene: UIScene) {
         // 백그라운드 진입 시 필요한 작업 수행
         saveApplicationState()
+        
     }
     
     // MARK: - Helper Methods
