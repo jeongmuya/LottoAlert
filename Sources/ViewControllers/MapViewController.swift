@@ -49,9 +49,6 @@ class MapViewController: UIViewController {
         }
         locationManager.requestAlwaysAuthorization()
         locationManager.allowsBackgroundLocationUpdates = true
-        
-        
-        
     }
     
     

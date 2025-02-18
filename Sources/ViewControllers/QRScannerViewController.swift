@@ -134,9 +134,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         let rectOfInterest = CGRect(x: 0.15, y: 0.15, width: 0.7, height: 0.7)
         metadataOutput.rectOfInterest = rectOfInterest
     }
-    
 
-    
     func failed() {
         let ac = UIAlertController(title: "스캐닝 불가",
                                   message: "디바이스가 QR코드 스캐닝을 지원하지 않습니다.",

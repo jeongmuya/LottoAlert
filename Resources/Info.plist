@@ -32,10 +32,11 @@
     <string>QR코드를 스캔하기 위해 카메라 접근 권한이 필요합니다.</string>
     <key>CFBundleDisplayName</key>
     <string>로또알람</string>
+    <!-- 위치 권한 설명 수정 -->
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>백그라운드 위치 추적을 위해 위치 정보가 필요합니다.</string>
+    <string>로또 판매점 근처에 오시면 알림을 보내드리기 위해 백그라운드에서 위치 정보가 필요합니다. 이를 통해 지정하신 로또 판매점 근처를 지날 때 자동으로 알림을 받으실 수 있습니다.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>현재 위치를 지도에 표시하기 위해 위치 정보가 필요합니다.</string>
+    <string>주변의 로또 판매점을 찾고 지도에 표시하기 위해 위치 정보가 필요합니다. 이를 통해 가까운 판매점을 쉽게 찾으실 수 있습니다.</string>
     <key>NSUserNotificationUsageDescription</key>
     <string>로또 판매점 근처 알림을 받기 위해 필요합니다.</string>
     <key>UIAppFonts</key>

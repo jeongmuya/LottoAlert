@@ -33,14 +33,17 @@ class AlertManager: NSObject, CLLocationManagerDelegate, UNUserNotificationCente
     
     private func setupLocationManager() {
         locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
-        locationManager.distanceFilter = 100
+        // 정확도를 낮추어 배터리 소모 감소
+        locationManager.desiredAccuracy = kCLLocationAccuracyReduced
+        // 거리 필터를 증가시켜 업데이트 빈도 감소
+        locationManager.distanceFilter = 200 // 200미터마다 업데이트
         locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.pausesLocationUpdatesAutomatically = false
+        // 자동 일시 중지 활성화
+        locationManager.pausesLocationUpdatesAutomatically = true
         locationManager.showsBackgroundLocationIndicator = true
         
-        // 백그라운드 위치 권한 요청
         locationManager.requestAlwaysAuthorization()
+        // significantLocationChanges 사용
         locationManager.startMonitoringSignificantLocationChanges()
     }
     
@@ -74,24 +77,186 @@ class AlertManager: NSObject, CLLocationManagerDelegate, UNUserNotificationCente
         }
     }
     
+    private var monitoredRegions: Set<String> = []
+
+    private func setupRegionMonitoring(for store: LottoStore) {
+        // 이미 모니터링 중인 region인지 확인
+        if locationManager.monitoredRegions.count >= 20 {
+            // 가장 오래된 region 제거
+            if let oldestRegion = locationManager.monitoredRegions.first {
+                locationManager.stopMonitoring(for: oldestRegion)
+                monitoredRegions.remove(oldestRegion.identifier)
+            }
+        }
+        
+        let region = CLCircularRegion(
+            center: CLLocationCoordinate2D(latitude: store.latitude, longitude: store.longitude),
+            radius: notificationDistance,
+            identifier: store.name
+        )
+        region.notifyOnEntry = true
+        region.notifyOnExit = false
+        
+        locationManager.startMonitoring(for: region)
+        monitoredRegions.insert(store.name)
+    }
+
+    // Region Monitoring Delegate 메서드 추가
+    func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        if let store = stores.first(where: { $0.name == region.identifier }) {
+            sendNotification(for: store)
+        }
+    }
+
+    
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let currentLocation = locations.last else { return }
         
-        // 백그라운드 상태에서는 배터리 절약을 위해 정확도 조정
+        // 백그라운드에서는 더 효율적인 방식으로 동작
         if UIApplication.shared.applicationState == .background {
-            locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+            // 주변 판매점에 대한 Region Monitoring 설정
+            let nearbyStores = stores.filter { store in
+                let storeLocation = CLLocation(
+                    latitude: store.latitude,
+                    longitude: store.longitude
+                )
+                return currentLocation.distance(from: storeLocation) <= 1000 // 1km 이내
+            }
+            
+            // 가까운 판매점들에 대해서만 Region Monitoring 설정
+            nearbyStores.forEach { setupRegionMonitoring(for: $0) }
+            
+            // 불필요한 위치 업데이트 중지
+            locationManager.stopUpdatingLocation()
         } else {
+            checkAndNotifyNearbyStores(at: currentLocation)
+        }
+    }
+
+    
+//    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+//        guard let currentLocation = locations.last else { return }
+//        
+//        // 백그라운드 상태에서는 배터리 절약을 위해 정확도 조정
+//        if UIApplication.shared.applicationState == .background {
+//            locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+//        } else {
+//            locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+//        }
+//        
+//        print("📍 위치 업데이트: lat: \(currentLocation.coordinate.latitude), lon: \(currentLocation.coordinate.longitude), 시간: \(Date())")
+//        
+//        checkAndNotifyNearbyStores(at: currentLocation)
+//    }
+    
+    
+    // MARK: - Error Handling Methods
+
+    func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
+        print("Region monitoring failed: \(error.localizedDescription)")
+        if let region = region {
+            monitoredRegions.remove(region.identifier)
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Location manager failed: \(error.localizedDescription)")
+        if (error as? CLError)?.code == .denied {
+            manager.stopUpdatingLocation()
+            showLocationPermissionAlert()
+        }
+    }
+
+    // MARK: - Memory Management
+
+    private func cleanupOldNotificationData() {
+        let currentTime = Date()
+        let keys = UserDefaults.standard.dictionaryRepresentation().keys
+        
+        for key in keys where key.hasPrefix("lastNotified_") {
+            if let lastDate = UserDefaults.standard.object(forKey: key) as? Date,
+               currentTime.timeIntervalSince(lastDate) > 86400 { // 24시간
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+    }
+
+    // MARK: - Optimization Methods
+
+    func optimizeLocationUpdates(for state: UIApplication.State) {
+        switch state {
+        case .background:
+            locationManager.desiredAccuracy = kCLLocationAccuracyReduced
+            locationManager.distanceFilter = 200
+            // Region Monitoring에 집중
+            locationManager.stopUpdatingLocation()
+            locationManager.startMonitoringSignificantLocationChanges()
+        case .active:
             locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            locationManager.distanceFilter = 100
+            locationManager.startUpdatingLocation()
+        default:
+            break
+        }
+    }
+    // MARK: - Region Monitoring Management
+
+    private func updateRegionMonitoring(at location: CLLocation) {
+        // 현재 모니터링 중인 regions 중 멀어진 것들 제거
+        for region in locationManager.monitoredRegions {
+            guard let circularRegion = region as? CLCircularRegion else { continue }
+            let regionCenter = CLLocation(
+                latitude: circularRegion.center.latitude,
+                longitude: circularRegion.center.longitude
+            )
+            
+            if location.distance(from: regionCenter) > 2000 { // 2km 이상 멀어진 경우
+                locationManager.stopMonitoring(for: region)
+                monitoredRegions.remove(region.identifier)
+            }
         }
         
-        print("📍 위치 업데이트: lat: \(currentLocation.coordinate.latitude), lon: \(currentLocation.coordinate.longitude), 시간: \(Date())")
+        // 새로운 nearby stores 모니터링 설정
+        let nearbyStores = stores.filter { store in
+            let storeLocation = CLLocation(
+                latitude: store.latitude,
+                longitude: store.longitude
+            )
+            return location.distance(from: storeLocation) <= 1000 // 1km 이내
+        }
         
-        checkAndNotifyNearbyStores(at: currentLocation)
+        for store in nearbyStores {
+            setupRegionMonitoring(for: store)
+        }
     }
+
+    
+    private func updateLocationAccuracy() {
+        if CLLocationManager.locationServicesEnabled() {
+            switch UIApplication.shared.applicationState {
+            case .background:
+                if locationManager.monitoredRegions.isEmpty {
+                    // 모니터링 중인 region이 없는 경우 significant location changes만 사용
+                    locationManager.stopUpdatingLocation()
+                    locationManager.startMonitoringSignificantLocationChanges()
+                }
+            case .active:
+                // 앱이 활성화된 경우 정확한 위치 업데이트 사용
+                locationManager.startUpdatingLocation()
+            default:
+                break
+            }
+        }
+    }
+
     
     // MARK: - Notification Methods
     
     private func checkAndNotifyNearbyStores(at location: CLLocation) {
+        // 마지막 알림 시간 확인
+        let currentTime = Date()
+        let minimumInterval: TimeInterval = 3600 // 1시간
+        
         let nearbyStores = stores.filter { store in
             let storeLocation = CLLocation(
                 latitude: store.latitude,
@@ -101,14 +266,36 @@ class AlertManager: NSObject, CLLocationManagerDelegate, UNUserNotificationCente
         }
         
         for store in nearbyStores {
-            if !lastNotifiedStores.contains(store.name) {
-                sendNotification(for: store)
-                lastNotifiedStores.insert(store.name)
+            if let lastNotified = UserDefaults.standard.object(forKey: "lastNotified_\(store.name)") as? Date {
+                if currentTime.timeIntervalSince(lastNotified) < minimumInterval {
+                    continue
+                }
             }
+            
+            sendNotification(for: store)
+            UserDefaults.standard.set(currentTime, forKey: "lastNotified_\(store.name)")
         }
-        
-        lastNotifiedStores = Set(nearbyStores.map { $0.name })
     }
+
+    
+//    private func checkAndNotifyNearbyStores(at location: CLLocation) {
+//        let nearbyStores = stores.filter { store in
+//            let storeLocation = CLLocation(
+//                latitude: store.latitude,
+//                longitude: store.longitude
+//            )
+//            return location.distance(from: storeLocation) <= notificationDistance
+//        }
+//        
+//        for store in nearbyStores {
+//            if !lastNotifiedStores.contains(store.name) {
+//                sendNotification(for: store)
+//                lastNotifiedStores.insert(store.name)
+//            }
+//        }
+//        
+//        lastNotifiedStores = Set(nearbyStores.map { $0.name })
+//    }
     
     private func sendNotification(for store: LottoStore) {
         let content = UNMutableNotificationContent()
@@ -149,8 +336,8 @@ class AlertManager: NSObject, CLLocationManagerDelegate, UNUserNotificationCente
     
     private func requestAlwaysAuthorization() {
         let alert = UIAlertController(
-            title: "백그라운드 위치 권한 필요",
-            message: "로또 판매점 알림을 받으시려면 '항상 허용' 권한이 필요합니다.",
+            title: "위치 권한 안내",
+            message: "로또 판매점 근처 알림을 받으시려면 '항상 허용' 권한이 필요합니다. 이 권한은 판매점 근처에서만 사용되며, 배터리 효율을 위해 최적화되어 있습니다.",
             preferredStyle: .alert
         )
         
