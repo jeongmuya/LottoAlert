@@ -1,6 +1,5 @@
-# 로또 알럿 (Lotto Alert)
-근처 로또 판매점 자동 알림 서비스
-
+# 로또 알림 (Lotto Alert)
+![Frame 636](https://github.com/user-attachments/assets/ca22e0e1-32b4-4103-b50b-f4583d29b48d)
 ## 주요 기능
 - 백그라운드 위치 추적
 - 근처 로또 판매점 자동 알림
